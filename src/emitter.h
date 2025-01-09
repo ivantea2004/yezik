@@ -1,3 +1,8 @@
+/*
+
+    Module which handles assembly emitting using declarative functions
+
+*/
 #pragma once
 #include <stdio.h>
 #include <stdint.h>
@@ -69,7 +74,7 @@ void emit_call(EmitCtx *ctx, const char *fn_name, size_t ret_size, Addr ret_valu
 // return
 void emit_ret(EmitCtx *ctx, size_t ret_size, Addr ret_value);
 
-// a = 10
+// a = const
 void emit_store_const(EmitCtx *ctx, Addr dst, int64_t value);
 
 // pa = &a
@@ -81,7 +86,7 @@ void emit_load(EmitCtx *ctx, Addr dst, Addr src);
 // *pc = b
 void emit_store(EmitCtx *ctx, Addr dst, Addr src);
 
-// brancing
+// branching
 void emit_label(EmitCtx *ctx, Label label);
 void emit_jmp(EmitCtx *ctx, Label label);
 void emit_cond_jmp(
