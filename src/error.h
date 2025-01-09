@@ -40,8 +40,8 @@ void error_exit(const char *msg);
 
 #endif
 
-#define YEZIK_UNREACHABLE(msg) \
-    YEZIK_ASSERT(0, (msg))
+#define YEZIK_UNREACHABLE(...) \
+    YEZIK_ASSERT(0, __VA_ARGS__)
 
 /*
     Prints a line containing <place> and hightlights <place>

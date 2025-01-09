@@ -87,16 +87,16 @@ size_t error_find_line(const char *text, size_t place, size_t *begin, size_t *en
             if (text[i + 1] == '\0')
             {
                 YEZIK_ASSERT(place < i + 1, "Index out of bounds.\n");
-                *begin = curr_begin;
-                *end = i;
+                if (begin)*begin = curr_begin;
+                if (end)*end = i;
                 return curr_line_number;
             }
             else
             {
                 if (place <= i)
                 {
-                    *begin = curr_begin;
-                    *end = i;
+                    if (begin)*begin = curr_begin;
+                    if (end)*end = i;
                     return curr_line_number;
                 }
                 else
@@ -106,8 +106,8 @@ size_t error_find_line(const char *text, size_t place, size_t *begin, size_t *en
                 }
             }
         } else if(text[i] == '\0') {
-            *begin = curr_begin;
-            *end = i;
+            if (begin) *begin = curr_begin;
+            if (end) *end = i;
             return curr_line_number;
         }
         i++;
