@@ -22,12 +22,15 @@ typedef enum
 
     // keywords
     TOKEN_FN,
-    TOKEN_LEN,
+    TOKEN_LET,
     TOKEN_CONST,
     TOKEN_IF,
     TOKEN_ELSE,
     TOKEN_LOOP,
     TOKEN_BREAK,
+    TOKEN_AND,
+    TOKEN_OR,
+    TOKEN_NOT,
 
     // brackets
     TOKEN_PAR_OPEN,   // '('
@@ -55,9 +58,6 @@ typedef enum
     TOKEN_CMP_G,
     TOKEN_CMP_LE,
     TOKEN_CMP_GE,
-    TOKEN_AND,
-    TOKEN_OR,
-    TOKEN_NOT,
     TOKEN_BIT_AND,
     TOKEN_BIT_OR,
     TOKEN_BIT_NOT
