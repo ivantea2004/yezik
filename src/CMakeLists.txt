@@ -8,6 +8,15 @@ add_executable(yezik
     lexer.h
     lexer.c
 
+    ast.h
+    ast.c
+
+    parser.h
+    parser.c
+
+    generator.h
+    generator.c
+
     emitter.h
     emitter.c
 

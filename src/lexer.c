@@ -49,7 +49,7 @@ int lexer_get(LexerCtx *ctx, Token *token)
 void lexer_unget(LexerCtx *ctx)
 {
     YEZIK_ASSERT(ctx->prev_pos < ctx->pos, "There is no token to unget.\n");
-    ctx->prev_pos = ctx->pos;
+    ctx->pos = ctx->prev_pos;
 }
 
 // Skips whitespace and comments
