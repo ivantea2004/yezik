@@ -7,3 +7,5 @@ typedef struct {
 } TestInfo;
 
 typedef TestInfo (*TestFunction)();
+
+void test_failed();

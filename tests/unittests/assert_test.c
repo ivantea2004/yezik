@@ -11,7 +11,7 @@ TEST(Assert_Pass, )
     YEZIK_ASSERT(0 == 0, "Expecting true\n");
 }
 
-TEST(Assert_Fail, )
+TEST(Assert_Fail, should_fail = 1)
 {
     YEZIK_ASSERT(1 == 0, "Expecting true\n");
 }
