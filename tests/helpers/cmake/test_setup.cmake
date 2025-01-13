@@ -1,4 +1,3 @@
-
 #[[
     Discovers tests in given source files and
         calls add_test() to invoke individual test
@@ -25,8 +24,8 @@
     )
 ]]
 set(_TEST_SETUP_DIR ${CMAKE_CURRENT_LIST_DIR})
-function(setup_tests_from_files)
 
+function(setup_tests_from_files)
     include(CMakeParseArguments)
     set(values "TEST_TARGET;CONFIG_FILE;WORKING_DIRECTORY")
     set(lists "DEFINITIONS;INCLUDE_DIRS;LIBRARIES;SOURCES")
@@ -37,11 +36,11 @@ function(setup_tests_from_files)
         "${lists}"
         ${ARGV}
     )
-    
+
     foreach(i ${values})
         set(arg_i "ARG_${i}")
-        
-        if (NOT DEFINED ${arg_i})
+
+        if(NOT DEFINED ${arg_i})
             message(FATAL_ERROR "${i} is not provided")
         endif()
     endforeach()
@@ -69,6 +68,7 @@ function(setup_tests_from_files)
     message("suite dir = ${suite_dir}")
 
     message("dis = ${discoverer}")
+
     # message("lolkek")
 
     #[[
@@ -77,8 +77,7 @@ function(setup_tests_from_files)
     foreach (_variableName ${_variableNames})
         message(STATUS "${_variableName}=${${_variableName}}")
     endforeach()
-    ]]    
-
+    ]]
     add_executable(
         ${target}
         ${sources}
@@ -101,10 +100,10 @@ function(setup_tests_from_files)
         COMMENT "Collecting test suite for ${target}"
         OUTPUT ${suite_dir}/${suite_file}
         COMMAND cmake
-            -DSUITE=${suite_file}
-            -DCONFIG_FILE=${config}
-            -P ${discoverer}
-            -- ${sources}
+        -DSUITE=${suite_file}
+        -DCONFIG_FILE=${config}
+        -P ${discoverer}
+        -- ${sources}
         DEPENDS ${sources} ${discoverer} ${config}
         WORKING_DIRECTORY ${suite_dir}
         VERBATIM
@@ -115,13 +114,11 @@ function(setup_tests_from_files)
         TARGET ${target} POST_BUILD
         BYPRODUCTS ${ctest_include}
         COMMAND
-            ${target}
-            gen
-            ${ctest_include}
-            ${CMAKE_CURRENT_SOURCE_DIR}/..
+        $<TARGET_FILE:${target}>
+        generate-ctest
+        ${ctest_include}
+        ${CMAKE_CURRENT_SOURCE_DIR}/..
     )
-    set_property(DIRECTORY APPEND PROPERTY TEST_INCLUDE_FILES ${test_include})
-
-    add_test(NAME ${target} COMMAND ${target})
+    set_property(DIRECTORY APPEND PROPERTY TEST_INCLUDE_FILES ${ctest_include})
 
 endfunction()

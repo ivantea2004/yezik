@@ -17,6 +17,6 @@
     }                                \
     void name##_test()
 
-#define TEST_DECL_FUNC(name) TestInfo name##_test_interface();
-#define TEST_GET_FUNC(name) name##_test_interface
+#define TEST_DECL_FUNC(name, ...) TestInfo name##_test_interface();
+#define TEST_GET_FUNC(name, ...) name##_test_interface
 #define TEST_FUNC_TYPE TestFunction

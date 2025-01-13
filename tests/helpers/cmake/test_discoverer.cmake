@@ -39,8 +39,8 @@
 
 ]]
 
-function (check_arg arg_name new_name)
-    if (DEFINED ${arg_name})
+function(check_arg arg_name new_name)
+    if(DEFINED ${arg_name})
         set(${new_name} ${${arg_name}} PARENT_SCOPE)
     else()
         message(FATAL_ERROR "${arg_name} should be defined.")
@@ -61,7 +61,8 @@ message("suite = " ${suite})
 # returns <ret> and <ret>_REM
 function(starts_with str other ret)
     string(FIND ${str} ${other} place)
-    if (NOT (place STREQUAL "0"))
+
+    if(NOT(place STREQUAL "0"))
         set(${ret} FALSE PARENT_SCOPE)
     else()
         string(LENGTH ${other} len)
@@ -75,10 +76,11 @@ endfunction()
 function(cut_before str other ret)
     # string(FIND <string> <substring> <output_variable> [REVERSE])
     string(FIND ${str} ${other} out)
-    if (${out} STREQUAL "-1")
+
+    if(${out} STREQUAL "-1")
         set(${ret} ${str} PARENT_SCOPE)
     else()
-        #  string(SUBSTRING <string> <begin> <length> <output_variable>)
+        # string(SUBSTRING <string> <begin> <length> <output_variable>)
         string(SUBSTRING ${str} 0 ${out} b)
         set(${ret} ${b} PARENT_SCOPE)
     endif()
@@ -96,7 +98,8 @@ function(is_macro_definition_line line out)
     starts_with(${line} "#define " s)
     message("out = ${out}")
     message("line = ${line}")
-    if (s)
+
+    if(s)
         message("at ${s_REM}")
         cut_before(${s_REM} "(" res)
         message("at ${res}")
@@ -106,7 +109,8 @@ function(is_macro_definition_line line out)
         set(${out} "TRUE" PARENT_SCOPE)
         message("out = ${out}")
         set(${out}_MACRO ${res} PARENT_SCOPE)
-        #message("set out = ${out}")
+
+    # message("set out = ${out}")
     else()
         set(${out} FALSE PARENT_SCOPE)
     endif()
@@ -115,12 +119,12 @@ endfunction()
 # returns call args in <out>_ARGS
 function(is_macro_call_line line m out)
     starts_with(${line} "${m}(" res)
-    if (res)
 
+    if(res)
         set(${out}_ARGS "(${res_REM}" PARENT_SCOPE)
         set(${out} TRUE PARENT_SCOPE)
     else()
-    set(${out} FALSE PARENT_SCOPE)
+        set(${out} FALSE PARENT_SCOPE)
     endif()
 endfunction()
 
@@ -138,10 +142,12 @@ string(REPLACE "\n" ";" config "${config}")
 string(REPLACE "\\" ";" config "${config}")
 message("config = ${config}")
 set(config_macros "")
+
 foreach(line ${config})
     is_macro_definition_line("${line}" out)
     message("out = ${out}, out_MACRO=${out_MACRO}")
-    if (out)
+
+    if(out)
         list(APPEND config_macros ${out_MACRO})
     endif()
 endforeach()
@@ -150,7 +156,7 @@ message("macros = ${config_macros}")
 
 list(LENGTH config_macros config_macros_length)
 
-if (config_macros_length LESS "4")
+if(config_macros_length LESS "4")
     message(FATAL_ERROR "Not enough macro definitions or they can not be properly parsed in file ${config_path}")
 endif()
 
@@ -165,27 +171,32 @@ set(sources "")
 
 set(in_sources FALSE)
 
-foreach(i  RANGE ${CMAKE_ARGC})
-    if (i LESS ${CMAKE_ARGC})
+foreach(i RANGE ${CMAKE_ARGC})
+    if(i LESS ${CMAKE_ARGC})
         set(arg ${CMAKE_ARGV${i}})
-        if (in_sources)
+
+        if(in_sources)
             list(APPEND sources ${arg})
         endif()
-        if (arg STREQUAL "--")
+
+        if(arg STREQUAL "--")
             set(in_sources TRUE)
         endif()
     endif()
 endforeach()
-    
+
 set(test_args "")
 
 foreach(file ${sources})
     file(READ ${file} src)
-    if (NOT (src STREQUAL ""))
+
+    if(NOT(src STREQUAL ""))
         string(REPLACE "\n" ";" src "${src}")
+
         foreach(line ${src})
             is_macro_call_line("${line}" ${def} out)
-            if (out)
+
+            if(out)
                 list(APPEND test_args ${out_ARGS})
             endif()
         endforeach()

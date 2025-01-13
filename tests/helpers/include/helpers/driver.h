@@ -6,4 +6,4 @@ typedef struct {
     int should_fail;
 } TestInfo;
 
-typedef void (*TestFunction)(TestInfo*);
+typedef TestInfo (*TestFunction)();

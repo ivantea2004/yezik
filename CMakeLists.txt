@@ -19,19 +19,19 @@ set(modules
 
 set(headers "")
 set(sources "")
-set(tests "")
+set(unittests "")
 
 foreach(m ${modules})
     list(APPEND headers ${CMAKE_CURRENT_SOURCE_DIR}/include/yezik/${m}.h)
     list(APPEND sources ${CMAKE_CURRENT_SOURCE_DIR}/src/${m}.c)
-    list(APPEND tests ${CMAKE_CURRENT_SOURCE_DIR}/tests/${m}_test.c)
+    list(APPEND unittests ${CMAKE_CURRENT_SOURCE_DIR}/tests/unittests/${m}_test.c)
 endforeach()
 
 set(includes ${CMAKE_CURRENT_SOURCE_DIR}/include)
 
 message("1 = " ${headers})
 message("2 = " ${sources})
-message("3 = " ${tests})
+message("3 = " ${unittests})
 
 add_executable(yezik
     src/main.c
@@ -44,12 +44,13 @@ target_include_directories(yezik PRIVATE ${includes})
 if(BUILD_TESTING)
     enable_testing()
     include(tests/helpers/cmake/test_setup.cmake)
+
     setup_tests_from_files(
-        TEST_TARGET yezik_test
+        TEST_TARGET yezik_unittests
         DEFINITIONS ""
         INCLUDE_DIRS ${includes} ${CMAKE_CURRENT_SOURCE_DIR}
         LIBRARIES ""
-        SOURCES ${tests}
+        SOURCES ${unittests}
         CONFIG_FILE ${CMAKE_CURRENT_SOURCE_DIR}/tests/test_config.h
         WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
     )

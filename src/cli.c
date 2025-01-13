@@ -5,6 +5,6 @@ int yezik_cli(int argc, char**argv)
 {
     (void)argc;
     (void)argv;
-    YEZIK_PANIC("");
+    YEZIK_PANIC("Do not know what to do\n");
     return 0;
 }
