@@ -33,6 +33,12 @@ message("1 = " ${headers})
 message("2 = " ${sources})
 message("3 = " ${unittests})
 
+if (BUILD_TESTING)
+    enable_testing()
+endif()
+
+add_subdirectory(subprocess)
+
 add_executable(yezik
     src/main.c
     ${sources}
@@ -40,16 +46,16 @@ add_executable(yezik
 )
 
 target_include_directories(yezik PRIVATE ${includes})
+target_link_libraries(yezik PRIVATE subprocess::subprocess)
 
 if(BUILD_TESTING)
-    enable_testing()
-    include(tests/helpers/cmake/test_setup.cmake)
 
+    include(tests/helpers/cmake/test_setup.cmake)
     setup_tests_from_files(
         TEST_TARGET yezik_unittests
         DEFINITIONS ""
         INCLUDE_DIRS ${includes} ${CMAKE_CURRENT_SOURCE_DIR}
-        LIBRARIES ""
+        LIBRARIES subprocess::subprocess
         SOURCES ${unittests}
         CONFIG_FILE ${CMAKE_CURRENT_SOURCE_DIR}/tests/test_config.h
         WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
