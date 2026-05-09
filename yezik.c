@@ -69,6 +69,8 @@ static void token_expect_and_emit(token_t *token, const char *what, int skip);
     Parsing functions
 */
 static void parse_global(const token_t *token, int def);
+static void parse_type_def(token_t *token, int def);
+static void parse_record(token_t *token, int def);
 static void parse_const(token_t *token, int def);
 static void parse_var(token_t *token, int def);
 static void parse_func(token_t *token, int def);
@@ -423,9 +425,52 @@ void parse_global(const token_t *token, int def)
             parse_func(&tmp, def);
         else if (token_can_match(&tmp, "const"))
             parse_const(&tmp, def);
+        else if (token_can_match(&tmp, "type"))
+            parse_type_def(&tmp, def);
+        else if (token_can_match(&tmp, "record"))
+            parse_record(&tmp, def);
         else
             parse_var(&tmp, def);
+        emit("\n", 0);
     }
+}
+
+void parse_type_def(token_t *token, int def)
+{
+    token_expect(token, "type");
+    emit("typedef ", def);
+    token_t name = *token;
+    token_expect(token, TOKEN_ID);
+    token_expect(token, "=");
+    parse_type(token, def);
+    emit(" ", def);
+    emit_token(&name, def);
+    token_expect(token, ";");
+    emit(";\n", def);
+}
+
+void parse_record(token_t *token, int def)
+{
+    token_expect(token, "record");
+    token_t name = *token;
+    emit("typedef struct ", def);
+    emit_token(&name, def);
+    emit(" ", def);
+    emit_token(&name, def);
+    emit(";\n", def);
+    emit("struct ", !def);
+    emit_token(&name, !def);
+    emit("\n{\n", !def);
+    token_expect(token, TOKEN_ID);
+    token_expect(token, "{");
+    while (!token_match(token, "}"))
+    {
+        emit_indented("", !def, 1);
+        parse_var_decl(token, !def);
+        token_expect(token, ";");
+        emit(";\n", !def);
+    }
+    emit("};\n", !def);
 }
 
 void parse_const(token_t *token, int def)
