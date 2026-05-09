@@ -49,19 +49,21 @@ static int is_id_char(char c);
 static token_kind_t parse_token(const token_t *token, const char **begin, const char **end);
 
 /*
+    Emit functions
+*/
+static void emit(const char *str, int skip);
+static void emit_indented(const char *str, int skip, size_t indent);
+static void emit_token(const token_t *token, int skip);
+
+/*
     Token matching
 */
 static int token_can_match(const token_t *token, const char *what);
 static int token_match(token_t *token, const char *what);
 static void token_expect(token_t *token, const char *what);
 static void token_unexpected(const token_t *token, const char *expected);
-
-/*
-    Emit functions
-*/
-static void emit(const char *str, int skip);
-static void emit_indented(const char *str, int skip, size_t indent);
-static void emit_token(token_t *token, int skip);
+static int token_match_and_emit(token_t *token, const char *what, int skip);
+static void token_expect_and_emit(token_t *token, const char *what, int skip);
 
 /*
     Parsing functions
@@ -344,6 +346,15 @@ int token_match(token_t *token, const char *what)
     return 0;
 }
 
+int token_match_and_emit(token_t *token, const char *what, int skip)
+{
+    token_t tmp = *token;
+    if (!token_match(token, what))
+        return 0;
+    emit_token(&tmp, skip);
+    return 1;
+}
+
 void token_expect(token_t *token, const char *what)
 {
     if (!token_match(token, what))
@@ -351,6 +362,13 @@ void token_expect(token_t *token, const char *what)
         token_unexpected(token, token_is_token_kind(what) ? token_kind_str(token_to_token_kind(what)) : what);
         exit(1);
     }
+}
+
+void token_expect_and_emit(token_t *token, const char *what, int skip)
+{
+    token_t tmp = *token;
+    token_expect(token, what);
+    emit_token(&tmp, skip);
 }
 
 void token_unexpected(const token_t *token, const char *expected)
@@ -382,14 +400,13 @@ void emit_indented(const char *str, int skip, size_t indent)
         fprintf(output_file, "%*s%s", (int)indent * 4, "", str);
 }
 
-void emit_token(token_t *token, int skip)
+void emit_token(const token_t *token, int skip)
 {
     const char *begin = NULL;
     const char *end = NULL;
     (void)parse_token(token, &begin, &end);
     if (!skip)
         fprintf(output_file, "%.*s", (int)(end - begin), begin);
-    *token = end;
 }
 
 /*
@@ -406,92 +423,67 @@ void parse_global(const token_t *token, int def)
 
 void parse_func(token_t *token, int def)
 {
-    int any_args = 0;
     token_expect(token, "function");
-    token_t name = *token;
-    token_expect(token, TOKEN_ID);
-    token_expect(token, "(");
-    while (!token_match(token, ")"))
+    token_t decl = *token;
+    token_t sig_end;
+    for (int i = 0; i < 2; i++)
     {
-        parse_var_decl(token, 1);
-        if (token_match(token, ","))
-            continue;
+        int skip = i == 0;
+        emit(" ", skip);
+        token_expect_and_emit(&decl, TOKEN_ID, skip);
+        token_expect(&decl, "(");
+        emit("(", skip);
+        int any_args = 0;
+        while (!token_match(&decl, ")"))
+        {
+            any_args = 1;
+            parse_var_decl(&decl, skip);
+            if (token_can_match(&decl, ")"))
+                continue;
+            token_expect(&decl, ",");
+            emit(", ", skip);
+        }
+        if (!any_args)
+            emit("void", skip);
+        emit(")", skip);
+        if (token_can_match(&decl, ";") || token_can_match(&decl, "{"))
+            emit("void", !skip);
         else
-        {
-            token_expect(token, ")");
-            break;
-        }
+            parse_type(&decl, !skip);
+        sig_end = decl;
+        decl = *token;
     }
-    if (token_can_match(token, "{") || token_can_match(token, ";"))
-    {
-        emit("void", 0);
-    }
-    else
-    {
-        parse_type(token, 0);
-    }
-    emit(" ", 0);
-    *token = name;
-    emit_token(token, 0);
-    token_expect(token, "(");
-    emit("(", 0);
-    while (!token_match(token, ")"))
-    {
-        parse_var_decl(token, 0);
-        any_args = 1;
-        if (token_match(token, ","))
-        {
-            emit(", ", 0);
-            continue;
-        }
-        else
-        {
-            token_expect(token, ")");
-            break;
-        }
-    }
-    if (!any_args)
-        emit("void", 0);
-    emit(")", 0);
-    if (token_can_match(token, "{") || token_can_match(token, ";"))
-    {
-    }
-    else
-    {
-        parse_type(token, 1);
-    }
+
+    *token = sig_end;
 
     if (token_match(token, ";"))
     {
         emit(";\n", 0);
         return;
     }
-    else
+
+    token_t body_end;
+
+    for (int i = 0; i < 2; i++)
     {
         token_expect(token, "{");
-        emit("\n{\n", !def);
-
-        token_t body = *token;
-
-        while (!token_match(&body, "}"))
-        {
-            parse_stmt(&body, !def, 1, 1);
-        }
+        emit("\n{\n", i || !def);
         while (!token_match(token, "}"))
-        {
-            parse_stmt(token, !def, 0, 1);
-        }
-        emit("}\n", !def);
-        emit(";\n", def);
+            parse_stmt(token, !def, !i, 1);
+        emit("}\n", !i || !def);
+        body_end = *token;
+        *token = sig_end;
     }
+
+    emit(";\n", def);
+    *token = body_end;
 }
 
 void parse_type(token_t *token, int skip)
 {
 
-    if (token_can_match(token, TOKEN_ID))
+    if (token_match_and_emit(token, TOKEN_ID, skip))
     {
-        emit_token(token, skip);
     }
     else if (token_match(token, "&"))
     {
@@ -574,7 +566,5 @@ void parse_stmt_block(token_t *token, int skip, int locals_decl, size_t indent)
 
 void parse_expr(token_t *token, int skip)
 {
-    token_t tmp = *token;
-    token_expect(&tmp, TOKEN_LITERAL);
-    emit_token(token, skip);
+    token_expect_and_emit(token, TOKEN_LITERAL, skip);
 }
