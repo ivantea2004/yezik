@@ -75,11 +75,17 @@ static void parse_expr(token_t *token, int skip);
 /*
     Main
 */
-int main(void)
+int main(int argc, char **argv)
 {
 
-    input_path = "in.yezik";
-    const char output_path[] = "out.c";
+    if (argc < 3)
+    {
+        fprintf(stderr, "Too few arguments.\n");
+        exit(1);
+    }
+
+    input_path = argv[1];
+    const char *output_path = argv[2];
 
     {
         FILE *input_file = fopen(input_path, "rb");
@@ -91,7 +97,7 @@ int main(void)
         fseek(input_file, 0, SEEK_END);
         size_t input_size = ftell(input_file);
         fseek(input_file, 0, SEEK_SET);
-        input_text = malloc(input_size + 1);
+        input_text = calloc(input_size + 1, 1);
         if (fread((char *)input_text, 1, input_size, input_file) < input_size)
         {
             perror(input_path);
@@ -264,7 +270,7 @@ token_kind_t parse_token(const token_t *token, const char **begin, const char **
         *end = p;
 
         for (size_t i = 0; keywords[i]; i++)
-            if (*begin - *end == strlen(keywords[i]) && strncmp(*begin, keywords[i], *end - *begin) == 0)
+            if ((size_t)(*begin - *end) == strlen(keywords[i]) && strncmp(*begin, keywords[i], *end - *begin) == 0)
                 return 0;
 
         return TOKEN_KIND_ID;
@@ -327,7 +333,7 @@ int token_match(token_t *token, const char *what)
     token_kind_t kind = parse_token(token, &begin, &end);
 
     if ((token_is_token_kind(what) && kind == token_to_token_kind(what)) ||
-        (!token_is_token_kind(what) && end - begin == strlen(what) && strncmp(begin, what, end - begin) == 0))
+        (!token_is_token_kind(what) && (size_t)(end - begin) == strlen(what) && strncmp(begin, what, end - begin) == 0))
     {
         *token = end;
         return 1;
