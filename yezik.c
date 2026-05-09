@@ -376,7 +376,7 @@ void emit(const char *str, int skip)
 void emit_indented(const char *str, int skip, size_t indent)
 {
     if (!skip)
-        fprintf(output_file, "%*s", (int)indent * 4, str);
+        fprintf(output_file, "%*s%s", (int)indent * 4, "", str);
 }
 
 void emit_token(token_t *token, int skip)
