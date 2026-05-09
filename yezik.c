@@ -69,6 +69,8 @@ static void token_expect_and_emit(token_t *token, const char *what, int skip);
     Parsing functions
 */
 static void parse_global(const token_t *token, int def);
+static void parse_const(token_t *token, int def);
+static void parse_var(token_t *token, int def);
 static void parse_func(token_t *token, int def);
 static void parse_type(token_t *token, int skip);
 static void parse_var_decl(token_t *token, int skip);
@@ -417,8 +419,36 @@ void parse_global(const token_t *token, int def)
     token_t tmp = *token;
     while (!token_can_match(&tmp, TOKEN_EOF))
     {
-        parse_func(&tmp, def);
+        if (token_can_match(&tmp, "function"))
+            parse_func(&tmp, def);
+        else if (token_can_match(&tmp, "const"))
+            parse_const(&tmp, def);
+        else
+            parse_var(&tmp, def);
     }
+}
+
+void parse_const(token_t *token, int def)
+{
+    token_expect(token, "const");
+    emit("#define ", def);
+    token_expect_and_emit(token, TOKEN_ID, def);
+    token_expect(token, "=");
+    emit(" (", def);
+    parse_expr(token, def);
+    emit(")\n", def);
+    token_expect(token, ";");
+}
+
+void parse_var(token_t *token, int def)
+{
+    emit("extern ", def);
+    parse_var_decl(token, 0);
+    token_expect(token, "=");
+    emit(" = ", !def);
+    parse_expr(token, !def);
+    token_expect(token, ";");
+    emit(";\n", 0);
 }
 
 void parse_func(token_t *token, int def)
