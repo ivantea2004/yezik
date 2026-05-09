@@ -168,11 +168,11 @@ void print_snippet(FILE *stream, const char *begin, const char *end)
     find_line(begin, &line_begin, &line_end, &line_number);
     if (end >= line_end)
         end = line_end;
-    int offset = 0;
-    fprintf(stream, " %d %n| %.*s\n", (int)line_number, &offset, (int)(line_end - line_begin), line_begin);
+    size_t offset = fprintf(stream, " %d ", (int)line_number);
+    fprintf(stream, "| %.*s\n", (int)(line_end - line_begin), line_begin);
     if (end > begin)
     {
-        fprintf(stream, "%*s| ", offset, "");
+        fprintf(stream, "%*s| ", (int)offset, "");
         for (const char *i = line_begin; i < end; i++)
             fputc(i < begin ? ' ' : i == begin ? '^'
                                                : '~',
