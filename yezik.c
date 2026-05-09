@@ -66,10 +66,12 @@ static void emit_token(token_t *token, int skip);
 /*
     Parsing functions
 */
+static void parse_global(const token_t *token, int def);
+static void parse_func(token_t *token, int def);
 static void parse_type(token_t *token, int skip);
 static void parse_var_decl(token_t *token, int skip);
-static void parse_stmt(token_t *token, int skip, size_t indent);
-static void parse_stmt_block(token_t *token, int skip, size_t indent);
+static void parse_stmt(token_t *token, int skip, int locals_decl, size_t indent);
+static void parse_stmt_block(token_t *token, int skip, int locals_decl, size_t indent);
 static void parse_expr(token_t *token, int skip);
 
 /*
@@ -116,7 +118,8 @@ int main(int argc, char **argv)
 
     {
         token_t i = input_text;
-        parse_stmt(&i, 0, 0);
+        parse_global(&i, 0);
+        parse_global(&i, 1);
     }
 
     fclose(output_file);
@@ -389,6 +392,100 @@ void emit_token(token_t *token, int skip)
     *token = end;
 }
 
+/*
+    Parsing functions
+*/
+void parse_global(const token_t *token, int def)
+{
+    token_t tmp = *token;
+    while (!token_can_match(&tmp, TOKEN_EOF))
+    {
+        parse_func(&tmp, def);
+    }
+}
+
+void parse_func(token_t *token, int def)
+{
+    int any_args = 0;
+    token_expect(token, "function");
+    token_t name = *token;
+    token_expect(token, TOKEN_ID);
+    token_expect(token, "(");
+    while (!token_match(token, ")"))
+    {
+        parse_var_decl(token, 1);
+        if (token_match(token, ","))
+            continue;
+        else
+        {
+            token_expect(token, ")");
+            break;
+        }
+    }
+    if (token_can_match(token, "{") || token_can_match(token, ";"))
+    {
+        emit("void", 0);
+    }
+    else
+    {
+        parse_type(token, 0);
+    }
+    emit(" ", 0);
+    *token = name;
+    emit_token(token, 0);
+    token_expect(token, "(");
+    emit("(", 0);
+    while (!token_match(token, ")"))
+    {
+        parse_var_decl(token, 0);
+        any_args = 1;
+        if (token_match(token, ","))
+        {
+            emit(", ", 0);
+            continue;
+        }
+        else
+        {
+            token_expect(token, ")");
+            break;
+        }
+    }
+    if (!any_args)
+        emit("void", 0);
+    emit(")", 0);
+    if (token_can_match(token, "{") || token_can_match(token, ";"))
+    {
+    }
+    else
+    {
+        parse_type(token, 1);
+    }
+
+    if (token_match(token, ";"))
+    {
+        emit(";\n", 0);
+        return;
+    }
+    else
+    {
+        token_expect(token, "{");
+        emit("\n{\n", !def);
+
+        token_t body = *token;
+
+        while (!token_match(&body, "}"))
+        {
+            parse_stmt(&body, !def, 1, 1);
+        }
+        while (!token_match(token, "}"))
+        {
+            parse_stmt(token, !def, 0, 1);
+        }
+        emit("}\n", !def);
+        emit(";\n", def);
+    }
+}
+
 void parse_type(token_t *token, int skip)
 {
 
@@ -418,58 +515,61 @@ void parse_var_decl(token_t *token, int skip)
     emit_token(&name, skip);
 }
 
-void parse_stmt(token_t *token, int skip, size_t indent)
+void parse_stmt(token_t *token, int skip, int locals_decl, size_t indent)
 {
     if (token_match(token, "if"))
     {
-        emit_indented("if(", skip, indent);
-        parse_expr(token, skip);
-        emit(")\n", skip);
-        parse_stmt_block(token, skip, indent);
+        emit_indented("if(", skip || locals_decl, indent);
+        parse_expr(token, skip || locals_decl);
+        emit(")\n", skip || locals_decl);
+        parse_stmt_block(token, skip, locals_decl, indent);
         if (token_match(token, "else"))
         {
-            emit_indented("else\n", skip, indent);
-            parse_stmt_block(token, skip, indent);
+            emit_indented("else\n", skip || locals_decl, indent);
+            parse_stmt_block(token, skip, locals_decl, indent);
         }
     }
     else if (token_can_match(token, "{"))
     {
-        parse_stmt_block(token, skip, indent);
+        parse_stmt_block(token, skip, locals_decl, indent);
     }
     else
     {
-        emit_indented("", skip, indent);
         token_t tmp = *token;
         if (token_match(&tmp, TOKEN_ID) && token_match(&tmp, ":"))
         {
-            parse_var_decl(token, skip);
+            emit_indented("", skip || !locals_decl, locals_decl ? 1 : indent);
+            parse_var_decl(token, skip || !locals_decl);
             token_expect(token, "=");
             if (!token_match(token, "undefined"))
             {
-                emit(" = ", skip);
-                parse_expr(token, skip);
+                emit(" = ", skip || !locals_decl);
+                parse_expr(token, skip || !locals_decl);
+                token_expect(token, ";");
+                emit(";\n", skip || !locals_decl);
             }
         }
         else
         {
-            parse_expr(token, skip);
+            emit_indented("", skip || locals_decl, indent);
+            parse_expr(token, skip || locals_decl);
+            token_expect(token, ";");
+            emit(";\n", skip || locals_decl);
         }
-        token_expect(token, ";");
-        emit(";\n", skip);
     }
 }
 
-void parse_stmt_block(token_t *token, int skip, size_t indent)
+void parse_stmt_block(token_t *token, int skip, int locals_decl, size_t indent)
 {
     token_expect(token, "{");
-    emit_indented("{\n", skip, indent);
+    emit_indented("{\n", skip || locals_decl, indent);
 
     while (!token_match(token, "}"))
     {
-        parse_stmt(token, skip, indent + 1);
+        parse_stmt(token, skip, locals_decl, indent + 1);
     }
 
-    emit_indented("}\n", skip, indent);
+    emit_indented("}\n", skip || locals_decl, indent);
 }
 
 void parse_expr(token_t *token, int skip)
