@@ -1,0 +1,32 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "type": "cppbuild",
+            "label": "Build yezik",
+            "command": "gcc",
+            "args": [
+                "-g",
+                "-Og",
+                "-O0",
+                "${workspaceFolder}/src/core.c",
+                "${workspaceFolder}/src/lexer.c",
+                "${workspaceFolder}/src/helpers.c",
+                "${workspaceFolder}/src/parser.c",
+                "${workspaceFolder}/src/main.c",
+                "-o",
+                "${workspaceFolder}/yezik",
+                "-Wall",
+                "-Wextra",
+                "-Werror"
+            ],
+            "problemMatcher": [
+                "$gcc"
+            ],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+        },
+    ],
+}
