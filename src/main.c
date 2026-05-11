@@ -1,9 +1,7 @@
-#include "error.c"
-#include "import.c"
-#include "token.c"
-#include "parse.c"
 #include <string.h>
 #include <errno.h>
+#include <stdlib.h>
+#include "import.h"
 
 int main(int argc, char **argv)
 {

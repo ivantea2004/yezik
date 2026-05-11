@@ -1,5 +1,6 @@
 #include "token.h"
 #include "error.h"
+#include <string.h>
 
 int is_space(char c)
 {
@@ -16,7 +17,7 @@ int is_id_char(char c)
     return is_digit(c) || ('A' <= c && c <= 'Z') || ('a' <= c && c <= 'z') || c == '_';
 }
 
-token_kind_t parse_token(const char *p, const char **begin, const char **end)
+token_kind_t token_parse(const char *p, const char **begin, const char **end)
 {
 
 #define KEYWORD(str, kind)                                                              \
@@ -36,7 +37,7 @@ token_kind_t parse_token(const char *p, const char **begin, const char **end)
         return kind;                 \
     } while (0)
 
-    const char *expected = NULL;
+    const char *expected;
     while (*p && is_space(*p))
         p++;
 
@@ -86,7 +87,7 @@ token_kind_t parse_token(const char *p, const char **begin, const char **end)
         }
         else
         {
-            expected = "matchin '\"'";
+            expected = "matching '\"'";
             goto unexpected_eof;
         }
     }
@@ -97,17 +98,24 @@ token_kind_t parse_token(const char *p, const char **begin, const char **end)
         HARDCODED(":", TOKEN_COLON);
         HARDCODED(";", TOKEN_SEMI);
 
+        HARDCODED("(", TOKEN_O_PAR);
+        HARDCODED(")", TOKEN_C_PAR);
+        HARDCODED("{", TOKEN_O_CUR);
+        HARDCODED("}", TOKEN_O_CUR);
+        HARDCODED("[", TOKEN_O_BR);
+        HARDCODED("]", TOKEN_C_BR);
+
         print_location(stderr, p);
         fprintf(stderr, "error: Unexpected char `%c`.\n", *p);
         print_snippet(stderr, p, p + 1);
-        exit(1);
+        terminate();
     }
 
 unexpected_eof:
     print_location(stderr, p);
     fprintf(stderr, "error: Unexpected EOF. Expected %s \n", expected);
     print_snippet(stderr, p - 1, p);
-    exit(1);
+    terminate();
 
 #undef HARDCODED
 #undef KEYWORD
