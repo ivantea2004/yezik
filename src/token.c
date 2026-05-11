@@ -61,6 +61,11 @@ token_kind_t token_parse(const char *p, const char **begin, const char **end)
             p++;
         *end = p;
 
+        KEYWORD("null", TOKEN_NULL);
+        KEYWORD("undefined", TOKEN_UNDEFINED);
+        KEYWORD("true", TOKEN_TRUE);
+        KEYWORD("false", TOKEN_FALSE);
+
         KEYWORD("if", TOKEN_IF);
         KEYWORD("else", TOKEN_ELSE);
         KEYWORD("while", TOKEN_WHILE);
@@ -93,6 +98,8 @@ token_kind_t token_parse(const char *p, const char **begin, const char **end)
     }
     else
     {
+
+        HARDCODED("=", TOKEN_ASSIGN);
 
         HARDCODED(",", TOKEN_COMMA);
         HARDCODED(":", TOKEN_COLON);

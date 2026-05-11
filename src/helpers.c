@@ -18,6 +18,15 @@ const char *token_kind_str(token_kind_t kind)
     case TOKEN_STRING:
         return "string literal";
 
+    case TOKEN_NULL:
+        return "`null`";
+    case TOKEN_UNDEFINED:
+        return "`undefined`";
+    case TOKEN_TRUE:
+        return "`true`";
+    case TOKEN_FALSE:
+        return "`false`";
+
     case TOKEN_IF:
         return "`if` keyword";
     case TOKEN_ELSE:
@@ -28,6 +37,9 @@ const char *token_kind_str(token_kind_t kind)
         return "`break` keyword";
     case TOKEN_CONTINUE:
         return "`continue` keyword";
+
+    case TOKEN_ASSIGN:
+        return "`=`";
 
     case TOKEN_COMMA:
         return "`,`";
@@ -80,19 +92,19 @@ int match(token_t *token, token_kind_t expected_kind)
     }
 }
 
+int can_match(const token_t *token, token_kind_t expected_kind)
+{
+    token_t tmp = *token;
+    return match(&tmp, expected_kind);
+}
+
 void expect(token_t *token, token_kind_t expected_kind)
 {
-    const char *begin, *end;
-    token_kind_t kind = token_parse(*token, &begin, &end);
-    if ((expected_kind == ANY_TOKEN && kind != TOKEN_EOF) || kind == expected_kind)
-    {
-        *token = end;
-    }
-    else
-    {
-        unexpected_token(token, token_kind_str(expected_kind));
-        terminate();
-    }
+    if (match(token, expected_kind))
+        return;
+
+    unexpected_token(token, token_kind_str(expected_kind));
+    terminate();
 }
 
 void output(const char *s, FILE *out)

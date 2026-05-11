@@ -9,6 +9,11 @@ typedef enum
     TOKEN_CHAR,
     TOKEN_STRING,
 
+    TOKEN_NULL,
+    TOKEN_UNDEFINED,
+    TOKEN_TRUE,
+    TOKEN_FALSE,
+
     TOKEN_IF,
     TOKEN_ELSE,
     TOKEN_WHILE,
@@ -19,6 +24,8 @@ typedef enum
     TOKEN_CONST,
     TOKEN_TYPE,
     TOKEN_RECORD,
+
+    TOKEN_ASSIGN,
 
     TOKEN_COMMA,
     TOKEN_COLON,
