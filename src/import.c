@@ -7,12 +7,12 @@
 static const char *path;
 static char *text;
 
-const char *current_source_file_path()
+const char *current_source_file_path(void)
 {
     return path;
 }
 
-const char *current_source_file_text()
+const char *current_source_file_text(void)
 {
     return text;
 }

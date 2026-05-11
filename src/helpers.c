@@ -113,10 +113,10 @@ void output(const char *s, FILE *out)
         fprintf(out, "%s", s);
 }
 
-void output_indented(const char *s, size_t indent, FILE *out)
+void output_indented(const char *s, FILE *out, size_t indent)
 {
     if (out)
-        fprintf(out, "%*s%s", (int)indent, "", s);
+        fprintf(out, "%*s%s", (int)indent * 4, "", s);
 }
 
 void output_token(const token_t *token, FILE *out)

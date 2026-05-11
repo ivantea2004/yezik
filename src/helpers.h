@@ -15,5 +15,5 @@ void expect(token_t *token, token_kind_t expected_kind);
 typedef FILE *out_t;
 
 void output(const char *s, out_t out);
-void output_indented(const char *s, size_t indent, out_t out);
+void output_indented(const char *s, out_t out, size_t indent);
 void output_token(const token_t *token, out_t out);

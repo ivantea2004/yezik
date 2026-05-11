@@ -108,7 +108,7 @@ token_kind_t token_parse(const char *p, const char **begin, const char **end)
         HARDCODED("(", TOKEN_O_PAR);
         HARDCODED(")", TOKEN_C_PAR);
         HARDCODED("{", TOKEN_O_CUR);
-        HARDCODED("}", TOKEN_O_CUR);
+        HARDCODED("}", TOKEN_C_CUR);
         HARDCODED("[", TOKEN_O_BR);
         HARDCODED("]", TOKEN_C_BR);
 
