@@ -21,6 +21,7 @@ typedef enum
     TOKEN_BREAK,
     TOKEN_CONTINUE,
 
+    TOKEN_IMPORT,
     TOKEN_FUNCTION,
     TOKEN_CONST,
     TOKEN_TYPE,
@@ -55,6 +56,7 @@ typedef enum
     X(TOKEN_BREAK, "break")       \
     X(TOKEN_CONTINUE, "continue") \
                                   \
+    X(TOKEN_IMPORT, "import")     \
     X(TOKEN_FUNCTION, "function") \
     X(TOKEN_CONST, "const")       \
     X(TOKEN_TYPE, "type")         \

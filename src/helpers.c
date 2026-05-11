@@ -1,6 +1,7 @@
 #include "helpers.h"
 #include "core.h"
 #include <stdlib.h>
+#include <string.h>
 
 const char *token_kind_str(token_kind_t kind)
 {
@@ -34,9 +35,18 @@ const char *token_kind_str(token_kind_t kind)
     }
 }
 
-#define ANY_TOKEN ((token_kind_t)(-1))
-
-typedef const char *token_t;
+char *token_string(const token_t *token)
+{
+    token_t tmp = *token;
+    expect(&tmp, TOKEN_STRING);
+    const char *begin, *end;
+    (void)token_parse(*token, &begin, &end);
+    begin++;
+    end--;
+    char *buff = calloc(end - begin + 1, 1);
+    memcpy(buff, begin, end - begin);
+    return buff;
+}
 
 void unexpected_token(const token_t *token, const char *expected)
 {

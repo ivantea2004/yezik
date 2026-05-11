@@ -5,6 +5,7 @@
 void parse_type(token_t *token, out_t out);
 void parse_var_decl(token_t *token, out_t out);
 
+void parse_import(token_t *token, out_t out, int def);
 void parse_function(token_t *token, out_t out, int def);
 void parse_var(token_t *token, out_t out, int def);
 void parse_const(token_t *token, out_t out, int def);
@@ -24,6 +25,8 @@ void parse_file(const char *text, FILE *out)
             token_kind_t k = peek(&token);
             if (k == TOKEN_EOF)
                 break;
+            else if (k == TOKEN_IMPORT)
+                parse_import(&token, out, def);
             else if (k == TOKEN_FUNCTION)
                 parse_function(&token, out, def);
             else if (k == TOKEN_CONST)
@@ -46,6 +49,21 @@ void parse_type(token_t *token, out_t out)
         unexpected_token(token, "type");
         terminate();
     }
+}
+
+void parse_import(token_t *token, out_t out, int def)
+{
+    token_t import = *token;
+    expect(token, TOKEN_IMPORT);
+    token_t str = *token;
+    expect(token, TOKEN_STRING);
+    if (!def)
+    {
+        char *path = token_string(&str);
+        import_file(path, out, import, *token);
+        free(path);
+    }
+    expect(token, TOKEN_SEMI);
 }
 
 void parse_function(token_t *token, out_t out, int def)

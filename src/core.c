@@ -120,7 +120,7 @@ void import_file(const char *path_, FILE *out, const char *import_begin, const c
     char *path;
     if (current_source_file_path)
     {
-        char *buff = calloc(strlen(current_source_file_path) + 1 + strlen(path_) + 1, 1);
+        char *buff = calloc(strlen(current_source_file_path) + 4 + strlen(path_) + 1, 1);
         strcat(buff, current_source_file_path);
         strcat(buff, "/../");
         strcat(buff, path_);
