@@ -1,7 +1,7 @@
 #include <string.h>
 #include <errno.h>
 #include <stdlib.h>
-#include "import.h"
+#include "core.h"
 
 int main(int argc, char **argv)
 {
@@ -20,7 +20,7 @@ int main(int argc, char **argv)
         exit(1);
     }
 
-    import_file(argv[1], out);
+    import_file(argv[1], out, NULL, NULL);
     fclose(out);
     return 0;
 }

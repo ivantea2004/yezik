@@ -1,6 +1,5 @@
 #include "helpers.h"
-#include "import.h"
-#include "error.h"
+#include "core.h"
 #include <stdlib.h>
 
 const char *token_kind_str(token_kind_t kind)

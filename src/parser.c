@@ -1,7 +1,6 @@
-#include "parse.h"
+#include "parser.h"
 #include "helpers.h"
-#include "import.h"
-#include "error.h"
+#include "core.h"
 
 void parse_type(token_t *token, out_t out);
 void parse_var_decl(token_t *token, out_t out);
@@ -14,12 +13,11 @@ void parse_stmt(token_t *token, out_t out, int locals_pass, size_t indent);
 
 void parse_expr(token_t *token, out_t out);
 
-void parse_file(FILE *out)
+void parse_file(const char *text, FILE *out)
 {
-
     for (int def = 0; def < 2; def++)
     {
-        const char *token = current_source_file_text();
+        const char *token = text;
 
         while (1)
         {

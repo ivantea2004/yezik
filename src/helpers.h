@@ -1,6 +1,6 @@
 #pragma once
 #include <stdio.h>
-#include "token.h"
+#include "lexer.h"
 
 #define ANY_TOKEN ((token_kind_t)(-1))
 

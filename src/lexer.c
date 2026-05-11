@@ -1,5 +1,5 @@
-#include "token.h"
-#include "error.h"
+#include "lexer.h"
+#include "core.h"
 #include <string.h>
 
 int is_space(char c)
