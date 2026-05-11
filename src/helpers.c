@@ -4,6 +4,15 @@
 
 const char *token_kind_str(token_kind_t kind)
 {
+
+#define KEYWORD_CASE(kind, str) \
+    case kind:                  \
+        return "`" str "` keyword";
+
+#define SYMBOL_CASE(kind, str) \
+    case kind:                 \
+        return "`" str "`";
+
     switch (kind)
     {
     case TOKEN_EOF:
@@ -16,37 +25,9 @@ const char *token_kind_str(token_kind_t kind)
         return "character literal";
     case TOKEN_STRING:
         return "string literal";
-
-    case TOKEN_NULL:
-        return "`null`";
-    case TOKEN_UNDEFINED:
-        return "`undefined`";
-    case TOKEN_TRUE:
-        return "`true`";
-    case TOKEN_FALSE:
-        return "`false`";
-
-    case TOKEN_IF:
-        return "`if` keyword";
-    case TOKEN_ELSE:
-        return "`else` keyword";
-    case TOKEN_WHILE:
-        return "`while` keyword";
-    case TOKEN_BREAK:
-        return "`break` keyword";
-    case TOKEN_CONTINUE:
-        return "`continue` keyword";
-
-    case TOKEN_ASSIGN:
-        return "`=`";
-
-    case TOKEN_COMMA:
-        return "`,`";
-    case TOKEN_COLON:
-        return "`:`";
-    case TOKEN_SEMI:
-        return "`;`";
-
+        TOKEN_BUILTINS_X(SYMBOL_CASE);
+        TOKEN_KEYWORD_X(KEYWORD_CASE);
+        TOKEN_SYMBOLS_X(SYMBOL_CASE);
     default:
         fprintf(stderr, "internal: Unknown token_kind_t vaue (%d).\n", kind);
         terminate();

@@ -20,11 +20,11 @@ int is_id_char(char c)
 token_kind_t token_parse(const char *p, const char **begin, const char **end)
 {
 
-#define KEYWORD(str, kind)                                                              \
+#define KEYWORD_MATCH(kind, str)                                                        \
     if (*end - *begin == sizeof(str) - 1 && strncmp(str, *begin, sizeof(str) - 1) == 0) \
         return kind;
 
-#define HARDCODED(str, kind)         \
+#define SYMBOL_MATCH(kind, str)      \
     do                               \
     {                                \
         const char *i = str;         \
@@ -35,7 +35,7 @@ token_kind_t token_parse(const char *p, const char **begin, const char **end)
             break;                   \
         *end = q;                    \
         return kind;                 \
-    } while (0)
+    } while (0);
 
     const char *expected;
     while (*p && is_space(*p))
@@ -61,21 +61,8 @@ token_kind_t token_parse(const char *p, const char **begin, const char **end)
             p++;
         *end = p;
 
-        KEYWORD("null", TOKEN_NULL);
-        KEYWORD("undefined", TOKEN_UNDEFINED);
-        KEYWORD("true", TOKEN_TRUE);
-        KEYWORD("false", TOKEN_FALSE);
-
-        KEYWORD("if", TOKEN_IF);
-        KEYWORD("else", TOKEN_ELSE);
-        KEYWORD("while", TOKEN_WHILE);
-        KEYWORD("break", TOKEN_BREAK);
-        KEYWORD("continue", TOKEN_CONTINUE);
-
-        KEYWORD("function", TOKEN_FUNCTION);
-        KEYWORD("const", TOKEN_CONST);
-        KEYWORD("type", TOKEN_TYPE);
-        KEYWORD("record", TOKEN_RECORD);
+        TOKEN_BUILTINS_X(KEYWORD_MATCH);
+        TOKEN_KEYWORD_X(KEYWORD_MATCH);
 
         return TOKEN_ID;
     }
@@ -98,19 +85,7 @@ token_kind_t token_parse(const char *p, const char **begin, const char **end)
     }
     else
     {
-
-        HARDCODED("=", TOKEN_ASSIGN);
-
-        HARDCODED(",", TOKEN_COMMA);
-        HARDCODED(":", TOKEN_COLON);
-        HARDCODED(";", TOKEN_SEMI);
-
-        HARDCODED("(", TOKEN_O_PAR);
-        HARDCODED(")", TOKEN_C_PAR);
-        HARDCODED("{", TOKEN_O_CUR);
-        HARDCODED("}", TOKEN_C_CUR);
-        HARDCODED("[", TOKEN_O_BR);
-        HARDCODED("]", TOKEN_C_BR);
+        TOKEN_SYMBOLS_X(SYMBOL_MATCH);
 
         print_location(stderr, p);
         fprintf(stderr, "error: Unexpected char `%c`.\n", *p);
