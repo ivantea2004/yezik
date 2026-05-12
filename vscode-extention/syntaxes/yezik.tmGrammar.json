@@ -1,0 +1,92 @@
+{
+    "scopeName": "source.yezik",
+    "patterns": [
+        {
+            "include": "#comments"
+        },
+        {
+            "include": "#integers"
+        },
+        {
+            "include": "#chars"
+        },
+        {
+            "include": "#strings"
+        },
+        {
+            "include": "#keywords-operators"
+        },
+        {
+            "include": "#keywords-control"
+        },
+        {
+            "include": "#keywords-declarators"
+        },
+        {
+            "include": "#builtin-types"
+        },
+        {
+            "include": "#builtin-constants"
+        },
+        {
+            "include": "#identifiers"
+        }
+    ],
+    "repository": {
+        "comments": {
+            "name": "comment.line.number-sign",
+            "begin": "#",
+            "end": "\n"
+        },
+        "identifiers": {
+            "name": "variable.other",
+            "match": "\\b(\\w+)\\b"
+        },
+        "integers": {
+            "name": "constant.numeric",
+            "match": "\\b([0-9]+)\\b"
+        },
+        "chars": {
+            "name": "string.quoted.double",
+            "begin": "'",
+            "end": "'",
+            "patterns": [
+                {
+                    "name": "constant.character.escape",
+                    "match": "\\\\."
+                }
+            ]
+        },
+        "strings": {
+            "name": "string.quoted.double",
+            "begin": "\"",
+            "end": "\"",
+            "patterns": [
+                {
+                    "name": "constant.character.escape",
+                    "match": "\\\\."
+                }
+            ]
+        },
+        "keywords-operators": {
+            "name": "keyword.other",
+            "match": "\\b(as|not|and|or)\\b"
+        },
+        "keywords-control": {
+            "name": "keyword.control",
+            "match": "\\b(if|else|while|break|continue|return)\\b"
+        },
+        "keywords-declarators": {
+            "name": "storage.type",
+            "match": "\\b(function|const|type|record|enum|import)\\b"
+        },
+        "builtin-types": {
+            "name": "storage.type",
+            "match": "\\b(none|bool|char|byte|ptr|isize|usize|i8|u8|i16|u16|i32|u32|i64|u64)\\b"
+        },
+        "builtin-constants": {
+            "name": "constant.language",
+            "match": "\\b(true|false|null|undefined)\\b"
+        }
+    }
+}

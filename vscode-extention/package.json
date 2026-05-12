@@ -1,0 +1,35 @@
+{
+    "name": "yezik-extension",
+    "displayName": "Yezik",
+    "description": "Support for yezik programming language",
+    "version": "0.0.1",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/ivantea2004/yezik.git"
+    },
+    "license": "MIT",
+    "engines": {
+        "vscode": "^1.100.0"
+    },
+    "categories": [
+        "Programming Languages"
+    ],
+    "contributes": {
+        "languages": [
+            {
+                "id": "yezik",
+                "extensions": [
+                    ".yezik"
+                ],
+                "configuration": "./language-configuration.json"
+            }
+        ],
+        "grammars": [
+            {
+                "language": "yezik",
+                "scopeName": "source.yezik",
+                "path": "./syntaxes/yezik.tmGrammar.json"
+            }
+        ]
+    }
+}
