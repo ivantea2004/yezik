@@ -1,3 +1,3 @@
-# Yezik extention
+# Yezik extension
 
-This extention provides support for Yezik programming language.
+This extension provides support for Yezik programming language.
