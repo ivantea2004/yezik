@@ -198,6 +198,8 @@ static void print_snippet(const char *begin, const char *end)
     X(TOKEN_GE, ">=")           \
     X(TOKEN_GT, ">")            \
                                 \
+    X(TOKEN_ARROW, "=>")        \
+                                \
     X(TOKEN_ASSIGN, "=")        \
                                 \
     X(TOKEN_PLUS_ASSIGN, "+=")  \
@@ -495,7 +497,10 @@ static void token_unexpected(const char *pos, const char *expected)
     (void)lexer_get_token(pos, &begin, &end, &kind);
 
     print_location(begin);
-    fprintf(stderr, "error: Unexpected token '%.*s'. Expected %s.\n", (int)(end - begin), begin, expected);
+    if (kind == TOKEN_EOF)
+        fprintf(stderr, "error: Unexpected EOF. Expected %s.\n", expected);
+    else
+        fprintf(stderr, "error: Unexpected token '%.*s'. Expected %s.\n", (int)(end - begin), begin, expected);
     print_snippet(begin, end);
 }
 
@@ -798,6 +803,36 @@ static const char *parse_stmt(const char *pos, int skip, size_t indent)
     panic();
 }
 
+static const char *parse_func_sig_args(const char *pos, int skip)
+{
+    pos = token_expect(pos, TOKEN_LPAR);
+    if (token_peek(pos) == TOKEN_RPAR)
+    {
+        output("(void)", skip);
+        return token_step(pos);
+    }
+    output("(", skip);
+    while (1)
+    {
+        const char *name = pos;
+        pos = token_expect(pos, TOKEN_ID);
+        pos = token_expect(pos, TOKEN_COLON);
+        pos = parse_type(pos, skip);
+        output(" ", skip);
+        output_token_id(name, skip);
+
+        if (token_peek(pos) == TOKEN_RPAR)
+            break;
+        else
+        {
+            pos = token_expect(pos, TOKEN_COMMA);
+            output(", ", skip);
+        }
+    }
+    output(")", skip);
+    return token_expect(pos, TOKEN_RPAR);
+}
+
 static const char *parse_global(const char *pos, int def)
 {
     if (token_peek(pos) == TOKEN_IMPORT)
@@ -916,6 +951,60 @@ static const char *parse_global(const char *pos, int def)
 
     if (token_peek_ex(pos, 0) == TOKEN_CONST &&
         token_peek_ex(pos, 1) == TOKEN_ID &&
+        token_peek_ex(pos, 2) == TOKEN_COLON &&
+        token_peek_ex(pos, 3) == TOKEN_LPAR)
+    {
+        pos = token_expect(pos, TOKEN_CONST);
+        const char *name = pos;
+        pos = token_expect(pos, TOKEN_ID);
+        pos = token_expect(pos, TOKEN_COLON);
+        pos = parse_func_sig_args(pos, 1);
+        pos = token_expect(pos, TOKEN_COLON);
+        pos = parse_type(pos, !def);
+        output(" ", !def);
+        output_token_id(name, !def);
+        pos = token_expect(name, TOKEN_ID);
+        pos = token_expect(pos, TOKEN_COLON);
+        pos = parse_func_sig_args(pos, !def);
+        pos = token_expect(pos, TOKEN_COLON);
+        pos = parse_type(pos, 1);
+        pos = token_expect(pos, TOKEN_ASSIGN);
+        pos = token_expect(pos, TOKEN_UNDEFINED);
+        output(";\n", !def);
+        return token_expect(pos, TOKEN_SEMI);
+    }
+
+    if (token_peek_ex(pos, 0) == TOKEN_CONST &&
+        token_peek_ex(pos, 1) == TOKEN_ID &&
+        token_peek_ex(pos, 2) == TOKEN_ASSIGN &&
+        token_peek_ex(pos, 3) == TOKEN_LPAR)
+    {
+        pos = token_expect(pos, TOKEN_CONST);
+        const char *name = pos;
+        pos = token_expect(pos, TOKEN_ID);
+        pos = token_expect(pos, TOKEN_ASSIGN);
+        pos = parse_func_sig_args(pos, 1);
+        pos = token_expect(pos, TOKEN_COLON);
+        pos = parse_type(pos, 0);
+        output(" ", 0);
+        output_token_id(name, 0);
+        pos = token_expect(name, TOKEN_ID);
+        pos = token_expect(pos, TOKEN_ASSIGN);
+        pos = parse_func_sig_args(pos, 0);
+        pos = token_expect(pos, TOKEN_COLON);
+        pos = parse_type(pos, 1);
+        pos = token_expect(pos, TOKEN_ARROW);
+        token_expect(pos, TOKEN_LCUR);
+        if (!def)
+            output(";\n", 0);
+        else
+            output("\n", 0);
+        pos = parse_stmt(pos, !def, 0);
+        return token_expect(pos, TOKEN_SEMI);
+    }
+
+    if (token_peek_ex(pos, 0) == TOKEN_CONST &&
+        token_peek_ex(pos, 1) == TOKEN_ID &&
         token_peek_ex(pos, 2) == TOKEN_ASSIGN)
     {
         output("#define ", def);
@@ -948,6 +1037,22 @@ static const char *parse_global(const char *pos, int def)
     if (token_peek_ex(pos, 0) == TOKEN_CONST &&
         token_peek_ex(pos, 1) == TOKEN_ID &&
         token_peek_ex(pos, 2) == TOKEN_COLON &&
+        token_peek_ex(pos, 3) == TOKEN_TYPE &&
+        token_peek_ex(pos, 4) == TOKEN_ASSIGN &&
+        token_peek_ex(pos, 5) == TOKEN_UNDEFINED)
+    {
+        pos = token_expect(pos, TOKEN_CONST);
+        pos = token_expect(pos, TOKEN_ID);
+        pos = token_expect(pos, TOKEN_COLON);
+        pos = token_expect(pos, TOKEN_TYPE);
+        pos = token_expect(pos, TOKEN_ASSIGN);
+        pos = token_expect(pos, TOKEN_UNDEFINED);
+        return token_expect(pos, TOKEN_SEMI);
+    }
+
+    if (token_peek_ex(pos, 0) == TOKEN_CONST &&
+        token_peek_ex(pos, 1) == TOKEN_ID &&
+        token_peek_ex(pos, 2) == TOKEN_COLON &&
         token_peek_ex(pos, 3) == TOKEN_TYPE)
     {
         pos = token_expect(pos, TOKEN_CONST);
@@ -963,8 +1068,6 @@ static const char *parse_global(const char *pos, int def)
         output(";\n", def);
         return token_expect(pos, TOKEN_SEMI);
     }
-
-    (void)parse_stmt;
 
     token_unexpected(pos, "global");
     panic();
