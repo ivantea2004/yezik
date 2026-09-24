@@ -81,6 +81,7 @@ char *current_path;
 char *current_text;
 FILE *output_file;
 str_list_t imported_paths;
+str_list_t enums;
 
 static void parse_file(void);
 static void import_file(const char *path, const char *begin, const char *end);
@@ -153,7 +154,9 @@ static void print_snippet(const char *begin, const char *end)
     X(TOKEN_NULL, "null")           \
     X(TOKEN_UNDEFINED, "undefined") \
     X(TOKEN_TRUE, "true")           \
-    X(TOKEN_FALSE, "false")
+    X(TOKEN_FALSE, "false")         \
+    X(TOKEN_UNDER, "_")             \
+    X(TOKEN_TYPE, "type")
 
 #define TOKEN_KEYWORDS_X(X)       \
     X(TOKEN_IF, "if")             \
@@ -161,30 +164,57 @@ static void print_snippet(const char *begin, const char *end)
     X(TOKEN_WHILE, "while")       \
     X(TOKEN_BREAK, "break")       \
     X(TOKEN_CONTINUE, "continue") \
-    X(TOKEN_CAST, "cast")         \
+    X(TOKEN_RETURN, "return")     \
                                   \
     X(TOKEN_IMPORT, "import")     \
     X(TOKEN_CONST, "const")       \
     X(TOKEN_LET, "let")           \
-    X(TOKEN_TYPE, "type")         \
     X(TOKEN_RECORD, "record")     \
     X(TOKEN_ENUM, "enum")
 
-#define TOKEN_SYMBOLS_X(X) \
-    X(TOKEN_ASSIGN, "=")   \
-                           \
-    X(TOKEN_COMMA, ",")    \
-    X(TOKEN_COLON, ":")    \
-    X(TOKEN_SEMI, ";")     \
-                           \
-    X(TOKEN_LPAR, "(")     \
-    X(TOKEN_RPAR, ")")     \
-    X(TOKEN_LCUR, "{")     \
-    X(TOKEN_RCUR, "}")     \
-    X(TOKEN_LBR, "[")      \
-    X(TOKEN_RBR, "}")      \
-                           \
-    X(TOKEN_PLUS, "+")
+#define TOKEN_KEYWORD_OPERATORS_X(X) \
+    X(TOKEN_NOT, "not")              \
+    X(TOKEN_AND, "and")              \
+    X(TOKEN_OR, "or")                \
+    X(TOKEN_CAST, "cast")
+
+#define TOKEN_SYMBOLS_X(X)      \
+                                \
+    X(TOKEN_COMMA, ",")         \
+    X(TOKEN_COLON, ":")         \
+    X(TOKEN_SEMI, ";")          \
+                                \
+    X(TOKEN_LPAR, "(")          \
+    X(TOKEN_RPAR, ")")          \
+    X(TOKEN_LCUR, "{")          \
+    X(TOKEN_RCUR, "}")          \
+    X(TOKEN_LBR, "[")           \
+    X(TOKEN_RBR, "]")           \
+                                \
+    X(TOKEN_EQ, "==")           \
+    X(TOKEN_NE, "<>")           \
+    X(TOKEN_LE, "<=")           \
+    X(TOKEN_LT, "<")            \
+    X(TOKEN_GE, ">=")           \
+    X(TOKEN_GT, ">")            \
+                                \
+    X(TOKEN_ASSIGN, "=")        \
+                                \
+    X(TOKEN_PLUS_ASSIGN, "+=")  \
+    X(TOKEN_MINUS_ASSIGN, "-=") \
+    X(TOKEN_MULT_ASSIGN, "*=")  \
+    X(TOKEN_DIV_ASSIGN, "/=")   \
+                                \
+    X(TOKEN_PLUS, "+")          \
+    X(TOKEN_MINUS, "-")         \
+    X(TOKEN_MULT, "*")          \
+    X(TOKEN_DIV, "/")           \
+    X(TOKEN_MOD, "%")           \
+                                \
+    X(TOKEN_REF, "&")           \
+    X(TOKEN_DEREF, "^")         \
+                                \
+    X(TOKEN_DOT, ".")
 
 #define TOKEN(x, ...) x,
 
@@ -195,7 +225,7 @@ typedef enum
     TOKEN_INT,
     TOKEN_STR,
     TOKEN_BUILTINS_X(TOKEN)
-    TOKEN_KEYWORDS_X(TOKEN) TOKEN_SYMBOLS_X(TOKEN)
+    TOKEN_KEYWORDS_X(TOKEN) TOKEN_KEYWORD_OPERATORS_X(TOKEN) TOKEN_SYMBOLS_X(TOKEN)
 } token_kind_t;
 
 #undef TOKEN
@@ -223,6 +253,7 @@ static const char *token_kind_str(token_kind_t kind)
         return "string literal";
         TOKEN_BUILTINS_X(SYMBOL_CASE);
         TOKEN_KEYWORDS_X(KEYWORD_CASE);
+        TOKEN_KEYWORD_OPERATORS_X(KEYWORD_CASE);
         TOKEN_SYMBOLS_X(SYMBOL_CASE);
     default:
         fprintf(stderr, "internal: Unknown token_kind_t value (%d).\n", kind);
@@ -305,6 +336,7 @@ static const char *lexer_get_token(const char *pos, const char **begin, const ch
 
         TOKEN_BUILTINS_X(KEYWORD_MATCH);
         TOKEN_KEYWORDS_X(KEYWORD_MATCH);
+        TOKEN_KEYWORD_OPERATORS_X(KEYWORD_MATCH)
 
         *kind = TOKEN_ID;
         return lexer_skip_space(pos);
@@ -363,8 +395,8 @@ unexpected_eof:
     print_snippet(pos - 1, pos);
     panic();
 
-#undef HARDCODED
-#undef KEYWORD
+#undef SYMBOL_MATCH
+#undef KEYWORD_MATCH
 }
 
 /* -------------------------------------------------------------------------- */
@@ -498,25 +530,15 @@ static const char *parse_type(const char *pos, int skip)
     return token_step(pos);
 }
 
-static const char *parse_expr(const char *pos, int skip)
-{
+static const char *parse_expr(const char *pos, int skip);
 
-    token_kind_t k = token_peek(pos);
-    if (k == TOKEN_INT)
-    {
-        output_token_int(pos, skip);
-        return token_step(pos);
-    }
-    else if (k == TOKEN_STR)
-    {
-        output_token_str(pos, skip);
-        return token_step(pos);
-    }
-    else if (token_peek_ex(pos, 0) == TOKEN_CAST &&
-             token_peek_ex(pos, 1) == TOKEN_LPAR &&
-             token_peek_ex(pos, 2) == TOKEN_ID &&
-             token_peek_ex(pos, 3) == TOKEN_RPAR &&
-             token_peek_ex(pos, 4) == TOKEN_STR)
+static const char *parse_unary_expr(const char *pos, int skip)
+{
+    if (token_peek_ex(pos, 0) == TOKEN_CAST &&
+        token_peek_ex(pos, 1) == TOKEN_LPAR &&
+        token_peek_ex(pos, 2) == TOKEN_ID &&
+        token_peek_ex(pos, 3) == TOKEN_RPAR &&
+        token_peek_ex(pos, 4) == TOKEN_STR)
     {
         pos = token_expect(pos, TOKEN_CAST);
         pos = token_expect(pos, TOKEN_LPAR);
@@ -525,8 +547,212 @@ static const char *parse_expr(const char *pos, int skip)
         output_token_char(pos, skip);
         return token_expect(pos, TOKEN_STR);
     }
-    token_unexpected(pos, "expression");
-    panic();
+
+    if (token_peek_ex(pos, 0) == TOKEN_ID &&
+        token_peek_ex(pos, 1) == TOKEN_DOT &&
+        token_peek_ex(pos, 2) == TOKEN_ID)
+    {
+        const char *begin;
+        const char *end;
+        token_kind_t kind;
+        lexer_get_token(pos, &begin, &end, &kind);
+        char *buff = calloc(end - begin + 1, 1);
+        strncat(buff, begin, end - begin);
+        if (str_list_find(&enums, buff))
+        {
+            output_token_id(pos, skip);
+            output("_", skip);
+            pos = token_expect(pos, TOKEN_ID);
+            pos = token_expect(pos, TOKEN_DOT);
+            output_token_id(pos, skip);
+            pos = token_expect(pos, TOKEN_ID);
+            return pos;
+        }
+        free(buff);
+    }
+
+    while (1)
+    {
+        if (token_peek(pos) == TOKEN_PLUS)
+        {
+            output("+", skip);
+            pos = token_step(pos);
+        }
+        else if (token_peek(pos) == TOKEN_MINUS)
+        {
+            output("-", skip);
+            pos = token_step(pos);
+        }
+        else if (token_peek(pos) == TOKEN_NOT)
+        {
+            output("!", skip);
+            pos = token_step(pos);
+        }
+        else if (token_peek(pos) == TOKEN_REF)
+        {
+            output("&", skip);
+            pos = token_step(pos);
+        }
+        else if (token_peek(pos) == TOKEN_CAST)
+        {
+            pos = token_expect(pos, TOKEN_CAST);
+            pos = token_expect(pos, TOKEN_LPAR);
+            output("(", skip);
+            pos = parse_type(pos, skip);
+            pos = token_expect(pos, TOKEN_RPAR);
+            output(")", skip);
+        }
+        else
+        {
+            break;
+        }
+    }
+
+    if (token_peek(pos) == TOKEN_INT)
+    {
+        output_token_int(pos, skip);
+        pos = token_step(pos);
+    }
+    else if (token_peek(pos) == TOKEN_STR)
+    {
+        output_token_str(pos, skip);
+        pos = token_step(pos);
+    }
+    else if (token_peek(pos) == TOKEN_ID)
+    {
+        output_token_id(pos, skip);
+        pos = token_step(pos);
+    }
+    else if (token_peek(pos) == TOKEN_LPAR)
+    {
+        output("(", skip);
+        pos = token_expect(pos, TOKEN_LPAR);
+        pos = parse_expr(pos, skip);
+        pos = token_expect(pos, TOKEN_RPAR);
+        output(")", skip);
+    }
+    else
+    {
+        token_unexpected(pos, "expression");
+        panic();
+    }
+
+    while (1)
+    {
+        if (token_peek(pos) == TOKEN_DEREF)
+        {
+            output("[0]", skip);
+            pos = token_step(pos);
+        }
+        else if (token_peek(pos) == TOKEN_DOT)
+        {
+            pos = token_expect(pos, TOKEN_DOT);
+            output(".", skip);
+            output_token_id(pos, skip);
+            pos = token_expect(pos, TOKEN_ID);
+        }
+        else if (token_peek(pos) == TOKEN_LBR)
+        {
+            output("[", skip);
+            pos = token_expect(pos, TOKEN_LBR);
+            pos = parse_expr(pos, skip);
+            pos = token_expect(pos, TOKEN_RBR);
+            output("]", skip);
+        }
+        else
+        {
+            break;
+        }
+    }
+
+    return pos;
+}
+
+static const char *parse_expr(const char *pos, int skip)
+{
+    pos = parse_unary_expr(pos, skip);
+    if (token_peek(pos) == TOKEN_PLUS)
+    {
+        output(" + ", skip);
+        pos = token_step(pos);
+        return parse_expr(pos, skip);
+    }
+    else if (token_peek(pos) == TOKEN_MINUS)
+    {
+        output(" - ", skip);
+        pos = token_step(pos);
+        return parse_expr(pos, skip);
+    }
+    else if (token_peek(pos) == TOKEN_MULT)
+    {
+        output(" * ", skip);
+        pos = token_step(pos);
+        return parse_expr(pos, skip);
+    }
+    else if (token_peek(pos) == TOKEN_DIV)
+    {
+        output(" / ", skip);
+        pos = token_step(pos);
+        return parse_expr(pos, skip);
+    }
+    else if (token_peek(pos) == TOKEN_MOD)
+    {
+        output(" % ", skip);
+        pos = token_step(pos);
+        return parse_expr(pos, skip);
+    }
+    else if (token_peek(pos) == TOKEN_AND)
+    {
+        output(" && ", skip);
+        pos = token_step(pos);
+        return parse_expr(pos, skip);
+    }
+    else if (token_peek(pos) == TOKEN_OR)
+    {
+        output(" OR ", skip);
+        pos = token_step(pos);
+        return parse_expr(pos, skip);
+    }
+    else if (token_peek(pos) == TOKEN_LT)
+    {
+        output(" < ", skip);
+        pos = token_step(pos);
+        return parse_expr(pos, skip);
+    }
+    else if (token_peek(pos) == TOKEN_LE)
+    {
+        output(" <= ", skip);
+        pos = token_step(pos);
+        return parse_expr(pos, skip);
+    }
+    else if (token_peek(pos) == TOKEN_GT)
+    {
+        output(" > ", skip);
+        pos = token_step(pos);
+        return parse_expr(pos, skip);
+    }
+    else if (token_peek(pos) == TOKEN_GE)
+    {
+        output(" >= ", skip);
+        pos = token_step(pos);
+        return parse_expr(pos, skip);
+    }
+    else if (token_peek(pos) == TOKEN_EQ)
+    {
+        output(" == ", skip);
+        pos = token_step(pos);
+        return parse_expr(pos, skip);
+    }
+    else if (token_peek(pos) == TOKEN_NE)
+    {
+        output(" != ", skip);
+        pos = token_step(pos);
+        return parse_expr(pos, skip);
+    }
+    else
+    {
+        return pos;
+    }
 }
 
 static const char *parse_stmt(const char *pos, int skip, size_t indent)
@@ -598,7 +824,99 @@ static const char *parse_global(const char *pos, int def)
     if (token_peek_ex(pos, 0) == TOKEN_CONST &&
         token_peek_ex(pos, 1) == TOKEN_ID &&
         token_peek_ex(pos, 2) == TOKEN_ASSIGN &&
-        token_peek_ex(pos, 3) != TOKEN_LPAR)
+        token_peek_ex(pos, 3) == TOKEN_RECORD)
+    {
+        pos = token_expect(pos, TOKEN_CONST);
+        const char *name = pos;
+        pos = token_expect(pos, TOKEN_ID);
+        pos = token_expect(pos, TOKEN_ASSIGN);
+        pos = token_expect(pos, TOKEN_RECORD);
+        pos = token_expect(pos, TOKEN_LCUR);
+
+        output("typedef struct ", def);
+        output_token_id(name, def);
+        output(" ", def);
+        output_token_id(name, def);
+        output(";\n", def);
+
+        output("struct ", !def);
+        output_token_id(name, !def);
+        output("\n{\n", !def);
+
+        while (1)
+        {
+            if (token_peek(pos) == TOKEN_RCUR)
+                break;
+            const char *member = pos;
+            pos = token_expect(pos, TOKEN_ID);
+            pos = token_expect(pos, TOKEN_COLON);
+            output_indent(1, !def);
+            pos = parse_type(pos, !def);
+            output(" ", !def);
+            output_token_id(member, !def);
+            output(";\n", !def);
+            pos = token_expect(pos, TOKEN_SEMI);
+        }
+        pos = token_expect(pos, TOKEN_RCUR);
+        output("};\n", !def);
+        return token_expect(pos, TOKEN_SEMI);
+    }
+
+    if (token_peek_ex(pos, 0) == TOKEN_CONST &&
+        token_peek_ex(pos, 1) == TOKEN_ID &&
+        token_peek_ex(pos, 2) == TOKEN_ASSIGN &&
+        token_peek_ex(pos, 3) == TOKEN_ENUM)
+    {
+        pos = token_expect(pos, TOKEN_CONST);
+        const char *name = pos;
+        pos = token_expect(pos, TOKEN_ID);
+        pos = token_expect(pos, TOKEN_ASSIGN);
+        pos = token_expect(pos, TOKEN_ENUM);
+        pos = token_expect(pos, TOKEN_LCUR);
+
+        output("enum ", def);
+        output_token_id(name, def);
+        output("\n{\n", def);
+
+        while (1)
+        {
+            if (token_peek(pos) == TOKEN_RCUR)
+                break;
+            output_indent(1, def);
+            output_token_id(name, def);
+            output("_", def);
+            output_token_id(pos, def);
+            pos = token_expect(pos, TOKEN_ID);
+            pos = token_expect(pos, TOKEN_SEMI);
+            if (token_peek(pos) == TOKEN_RCUR)
+                output("\n", def);
+            else
+                output(",\n", def);
+        }
+        pos = token_expect(pos, TOKEN_RCUR);
+        output("};\n", def);
+
+        output("typedef enum ", def);
+        output_token_id(name, def);
+        output(" ", def);
+        output_token_id(name, def);
+        output(";\n", def);
+        {
+            const char *begin;
+            const char *end;
+            token_kind_t kind;
+            lexer_get_token(name, &begin, &end, &kind);
+            char *buff = calloc(end - begin + 1, 1);
+            strncat(buff, begin, end - begin);
+            str_list_append(&enums, buff);
+            free(buff);
+        }
+        return token_expect(pos, TOKEN_SEMI);
+    }
+
+    if (token_peek_ex(pos, 0) == TOKEN_CONST &&
+        token_peek_ex(pos, 1) == TOKEN_ID &&
+        token_peek_ex(pos, 2) == TOKEN_ASSIGN)
     {
         output("#define ", def);
         pos = token_step(pos);
@@ -623,6 +941,25 @@ static const char *parse_global(const char *pos, int def)
         pos = token_expect(pos, TOKEN_ASSIGN);
         output(" = ", def);
         pos = parse_expr(pos, def);
+        output(";\n", def);
+        return token_expect(pos, TOKEN_SEMI);
+    }
+
+    if (token_peek_ex(pos, 0) == TOKEN_CONST &&
+        token_peek_ex(pos, 1) == TOKEN_ID &&
+        token_peek_ex(pos, 2) == TOKEN_COLON &&
+        token_peek_ex(pos, 3) == TOKEN_TYPE)
+    {
+        pos = token_expect(pos, TOKEN_CONST);
+        const char *name = pos;
+        pos = token_expect(pos, TOKEN_ID);
+        pos = token_expect(pos, TOKEN_COLON);
+        pos = token_expect(pos, TOKEN_TYPE);
+        pos = token_expect(pos, TOKEN_ASSIGN);
+        output("typedef ", def);
+        pos = parse_type(pos, def);
+        output(" ", def);
+        output_token_id(name, def);
         output(";\n", def);
         return token_expect(pos, TOKEN_SEMI);
     }
