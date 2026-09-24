@@ -244,7 +244,7 @@ static int is_number(char c)
 
 static int is_allowed_in_id(char c)
 {
-    return ('a' <= c && c <= 'z') || ('A' <= c && c <= 'Z') || c == '_';
+    return ('a' <= c && c <= 'z') || ('A' <= c && c <= 'Z') || c == '_' || is_number(c);
 }
 
 static const char *lexer_skip_space(const char *pos)
@@ -525,14 +525,13 @@ static const char *parse_expr(const char *pos, int skip)
         output_token_char(pos, skip);
         return token_expect(pos, TOKEN_STR);
     }
-    token_unexpected(pos, "expression.\n");
+    token_unexpected(pos, "expression");
     panic();
 }
 
 static const char *parse_stmt(const char *pos, int skip, size_t indent)
 {
-    const token_kind_t k = token_peek(pos);
-    if (k == TOKEN_LCUR)
+    if (token_peek(pos) == TOKEN_LCUR)
     {
         pos = token_step(pos);
         output_indent(indent, skip);
@@ -548,7 +547,8 @@ static const char *parse_stmt(const char *pos, int skip, size_t indent)
             pos = parse_stmt(pos, skip, indent + 1);
         }
     }
-    else if (k == TOKEN_LET)
+
+    if (token_peek(pos) == TOKEN_LET)
     {
         pos = token_step(pos);
         output_indent(indent, skip);
@@ -567,29 +567,90 @@ static const char *parse_stmt(const char *pos, int skip, size_t indent)
         output(";\n", skip);
         return token_expect(pos, TOKEN_SEMI);
     }
-    else
+
+    token_unexpected(pos, "statement");
+    panic();
+}
+
+static const char *parse_global(const char *pos, int def)
+{
+    if (token_peek(pos) == TOKEN_IMPORT)
     {
-        token_unexpected(pos, "statement");
-        panic();
+        pos = token_step(pos);
+        const char *begin;
+        const char *end;
+        token_kind_t kind;
+        token_expect(pos, TOKEN_STR);
+        lexer_get_token(pos, &begin, &end, &kind);
+
+        if (!def)
+        {
+            char *buff = calloc(end - begin, 1);
+            strncat(buff, begin + 1, end - begin - 2);
+            import_file(buff, begin, end);
+            free(buff);
+        }
+
+        pos = token_step(pos);
+        return token_expect(pos, TOKEN_SEMI);
     }
+
+    if (token_peek_ex(pos, 0) == TOKEN_CONST &&
+        token_peek_ex(pos, 1) == TOKEN_ID &&
+        token_peek_ex(pos, 2) == TOKEN_ASSIGN &&
+        token_peek_ex(pos, 3) != TOKEN_LPAR)
+    {
+        output("#define ", def);
+        pos = token_step(pos);
+        output_token_id(pos, def);
+        pos = token_step(pos);
+        pos = token_step(pos);
+        output(" (", def);
+        pos = parse_expr(pos, def);
+        output(")\n", def);
+        return token_expect(pos, TOKEN_SEMI);
+    }
+
+    if (token_peek(pos) == TOKEN_LET)
+    {
+        pos = token_expect(pos, TOKEN_LET);
+        const char *name = pos;
+        pos = token_expect(pos, TOKEN_ID);
+        pos = token_expect(pos, TOKEN_COLON);
+        pos = parse_type(pos, def);
+        output(" ", def);
+        output_token_id(name, def);
+        pos = token_expect(pos, TOKEN_ASSIGN);
+        output(" = ", def);
+        pos = parse_expr(pos, def);
+        output(";\n", def);
+        return token_expect(pos, TOKEN_SEMI);
+    }
+
+    (void)parse_stmt;
+
+    token_unexpected(pos, "global");
+    panic();
 }
 
 void parse_file(void)
 {
     const char *pos = current_text;
-    parse_stmt(pos, 0, 0);
-    // // pos = lexer_skip_space(pos);
-    // // parse_stmt(pos, 0, 0);
-    // while (1)
-    // {
-    //     const char *begin;
-    //     const char *end;
-    //     token_kind_t kind;
-    //     pos = lexer_get_token(pos, &begin, &end, &kind);
-    //     if (kind == TOKEN_EOF)
-    //         break;
-    //     printf("%s\n", token_kind_str(kind));
-    // }
+    while (1)
+    {
+        pos = lexer_skip_space(pos);
+        if (token_peek(pos) == TOKEN_EOF)
+            break;
+        pos = parse_global(pos, 0);
+    }
+    pos = current_text;
+    while (1)
+    {
+        pos = lexer_skip_space(pos);
+        if (token_peek(pos) == TOKEN_EOF)
+            break;
+        pos = parse_global(pos, 1);
+    }
 }
 
 /* -------------------------------------------------------------------------- */
