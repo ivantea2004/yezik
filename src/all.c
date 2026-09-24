@@ -161,6 +161,7 @@ static void print_snippet(const char *begin, const char *end)
     X(TOKEN_WHILE, "while")       \
     X(TOKEN_BREAK, "break")       \
     X(TOKEN_CONTINUE, "continue") \
+    X(TOKEN_CAST, "cast")         \
                                   \
     X(TOKEN_IMPORT, "import")     \
     X(TOKEN_CONST, "const")       \
@@ -327,6 +328,25 @@ static const char *lexer_get_token(const char *pos, const char **begin, const ch
             goto unexpected_eof;
         }
     }
+    else if (*pos == '\'')
+    {
+        *begin = pos;
+        pos++;
+        while (*pos && *pos != '\'')
+            pos++;
+        if (*pos == '\'')
+        {
+            pos++;
+            *end = pos;
+            *kind = TOKEN_STR;
+            return lexer_skip_space(pos);
+        }
+        else
+        {
+            expected = "matching '\''";
+            goto unexpected_eof;
+        }
+    }
     else
     {
         TOKEN_SYMBOLS_X(SYMBOL_MATCH);
@@ -402,17 +422,17 @@ static void output_token_str(const char *pos, int skip)
         fprintf(output_file, "\"%.*s\"", (int)(end - begin - 2), begin + 1);
 }
 
-// static void output_token_char(const char *pos, int skip)
-// {
-//     const char *begin;
-//     const char *end;
-//     token_kind_t kind;
-//     (void)lexer_get_token(pos, &begin, &end, &kind);
-//     if (kind != TOKEN_STR)
-//         panic();
-//     if (!skip)
-//         fprintf(output_file, "'%.*s'", (int)(end - begin - 2), begin + 1);
-// }
+static void output_token_char(const char *pos, int skip)
+{
+    const char *begin;
+    const char *end;
+    token_kind_t kind;
+    (void)lexer_get_token(pos, &begin, &end, &kind);
+    if (kind != TOKEN_STR)
+        panic();
+    if (!skip)
+        fprintf(output_file, "'%.*s'", (int)(end - begin - 2), begin + 1);
+}
 
 /* -------------------------------------------------------------------------- */
 /*                                   Parser                                   */
@@ -461,6 +481,16 @@ static const char *token_expect(const char *pos, token_kind_t expected_kind)
     }
 }
 
+static token_kind_t token_peek_ex(const char *pos, size_t depth)
+{
+    token_kind_t cur = token_peek(pos);
+    if (depth == 0)
+        return cur;
+    if (cur == TOKEN_EOF)
+        return TOKEN_EOF;
+    return token_peek_ex(token_step(pos), depth - 1);
+}
+
 static const char *parse_type(const char *pos, int skip)
 {
     token_expect(pos, TOKEN_ID);
@@ -470,6 +500,7 @@ static const char *parse_type(const char *pos, int skip)
 
 static const char *parse_expr(const char *pos, int skip)
 {
+
     token_kind_t k = token_peek(pos);
     if (k == TOKEN_INT)
     {
@@ -480,6 +511,19 @@ static const char *parse_expr(const char *pos, int skip)
     {
         output_token_str(pos, skip);
         return token_step(pos);
+    }
+    else if (token_peek_ex(pos, 0) == TOKEN_CAST &&
+             token_peek_ex(pos, 1) == TOKEN_LPAR &&
+             token_peek_ex(pos, 2) == TOKEN_ID &&
+             token_peek_ex(pos, 3) == TOKEN_RPAR &&
+             token_peek_ex(pos, 4) == TOKEN_STR)
+    {
+        pos = token_expect(pos, TOKEN_CAST);
+        pos = token_expect(pos, TOKEN_LPAR);
+        pos = token_expect(pos, TOKEN_ID);
+        pos = token_expect(pos, TOKEN_RPAR);
+        output_token_char(pos, skip);
+        return token_expect(pos, TOKEN_STR);
     }
     token_unexpected(pos, "expression.\n");
     panic();
