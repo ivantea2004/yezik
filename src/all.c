@@ -156,7 +156,8 @@ static void print_snippet(const char *begin, const char *end)
     X(TOKEN_TRUE, "true")           \
     X(TOKEN_FALSE, "false")         \
     X(TOKEN_UNDER, "_")             \
-    X(TOKEN_TYPE, "type")
+    X(TOKEN_TYPE, "type")           \
+    X(TOKEN_BOOL, "bool")
 
 #define TOKEN_KEYWORDS_X(X)       \
     X(TOKEN_IF, "if")             \
@@ -530,6 +531,32 @@ static token_kind_t token_peek_ex(const char *pos, size_t depth)
 
 static const char *parse_type(const char *pos, int skip)
 {
+    if (token_peek_ex(pos, 0) == TOKEN_REF &&
+        token_peek_ex(pos, 1) == TOKEN_LBR)
+    {
+        pos = token_expect(pos, TOKEN_REF);
+        pos = token_expect(pos, TOKEN_LBR);
+        pos = token_expect(pos, TOKEN_UNDER);
+        pos = token_expect(pos, TOKEN_RBR);
+        pos = parse_type(pos, skip);
+        output("*", skip);
+        return pos;
+    }
+
+    if (token_peek(pos) == TOKEN_REF)
+    {
+        pos = token_expect(pos, TOKEN_REF);
+        pos = parse_type(pos, skip);
+        output("*", skip);
+        return pos;
+    }
+
+    if (token_peek(pos) == TOKEN_BOOL)
+    {
+        output("int", skip);
+        return token_step(pos);
+    }
+
     token_expect(pos, TOKEN_ID);
     output_token_id(pos, skip);
     return token_step(pos);
@@ -636,6 +663,21 @@ static const char *parse_unary_expr(const char *pos, int skip)
         pos = token_expect(pos, TOKEN_RPAR);
         output(")", skip);
     }
+    else if (token_peek(pos) == TOKEN_NULL)
+    {
+        output("NULL", skip);
+        pos = token_step(pos);
+    }
+    else if (token_peek(pos) == TOKEN_TRUE)
+    {
+        output("1", skip);
+        pos = token_step(pos);
+    }
+    else if (token_peek(pos) == TOKEN_FALSE)
+    {
+        output("0", skip);
+        pos = token_step(pos);
+    }
     else
     {
         token_unexpected(pos, "expression");
@@ -663,6 +705,27 @@ static const char *parse_unary_expr(const char *pos, int skip)
             pos = parse_expr(pos, skip);
             pos = token_expect(pos, TOKEN_RBR);
             output("]", skip);
+        }
+        else if (token_peek(pos) == TOKEN_LPAR)
+        {
+            pos = token_expect(pos, TOKEN_LPAR);
+            output("(", skip);
+
+            if (token_peek(pos) != TOKEN_RPAR)
+                while (1)
+                {
+                    pos = parse_expr(pos, skip);
+                    if (token_peek(pos) == TOKEN_RPAR)
+                        break;
+                    else
+                    {
+                        output(", ", skip);
+                        pos = token_expect(pos, TOKEN_COMMA);
+                    }
+                }
+
+            pos = token_expect(pos, TOKEN_RPAR);
+            output(")", skip);
         }
         else
         {
@@ -754,6 +817,36 @@ static const char *parse_expr(const char *pos, int skip)
         pos = token_step(pos);
         return parse_expr(pos, skip);
     }
+    else if (token_peek(pos) == TOKEN_ASSIGN)
+    {
+        output(" = ", skip);
+        pos = token_step(pos);
+        return parse_expr(pos, skip);
+    }
+    else if (token_peek(pos) == TOKEN_PLUS_ASSIGN)
+    {
+        output(" += ", skip);
+        pos = token_step(pos);
+        return parse_expr(pos, skip);
+    }
+    else if (token_peek(pos) == TOKEN_MINUS_ASSIGN)
+    {
+        output(" -= ", skip);
+        pos = token_step(pos);
+        return parse_expr(pos, skip);
+    }
+    else if (token_peek(pos) == TOKEN_MULT_ASSIGN)
+    {
+        output(" *= ", skip);
+        pos = token_step(pos);
+        return parse_expr(pos, skip);
+    }
+    else if (token_peek(pos) == TOKEN_DIV_ASSIGN)
+    {
+        output(" /= ", skip);
+        pos = token_step(pos);
+        return parse_expr(pos, skip);
+    }
     else
     {
         return pos;
@@ -795,12 +888,77 @@ static const char *parse_stmt(const char *pos, int skip, size_t indent)
             output(" = ", skip);
             pos = parse_expr(pos, skip);
         }
+        else
+            pos = token_step(pos);
         output(";\n", skip);
         return token_expect(pos, TOKEN_SEMI);
     }
 
-    token_unexpected(pos, "statement");
-    panic();
+    if (token_peek(pos) == TOKEN_BREAK)
+    {
+        pos = token_step(pos);
+        output_indent(indent, skip);
+        output("break ", skip);
+        if (token_peek(pos) != TOKEN_SEMI)
+            pos = parse_expr(pos, skip);
+        output(";\n", skip);
+        return token_expect(pos, TOKEN_SEMI);
+    }
+
+    if (token_peek(pos) == TOKEN_CONTINUE)
+    {
+        output_indent(indent, skip);
+        output("continue;\n", skip);
+        return token_expect(pos, TOKEN_SEMI);
+    }
+
+    if (token_peek(pos) == TOKEN_RETURN)
+    {
+        pos = token_step(pos);
+        output_indent(indent, skip);
+        output("return ", skip);
+        if (token_peek(pos) != TOKEN_SEMI)
+            pos = parse_expr(pos, skip);
+        output(";\n", skip);
+        return token_expect(pos, TOKEN_SEMI);
+    }
+
+    if (token_peek(pos) == TOKEN_WHILE)
+    {
+        pos = token_step(pos);
+        output_indent(indent, skip);
+        output("while (", skip);
+        pos = parse_expr(pos, skip);
+        output(")\n", skip);
+        token_expect(pos, TOKEN_LCUR);
+        return parse_stmt(pos, skip, indent);
+    }
+
+    if (token_peek(pos) == TOKEN_IF)
+    {
+        pos = token_step(pos);
+        output_indent(indent, skip);
+        output("if (", skip);
+        pos = parse_expr(pos, skip);
+        output(")\n", skip);
+        token_expect(pos, TOKEN_LCUR);
+        pos = parse_stmt(pos, skip, indent);
+        if (token_peek(pos) == TOKEN_ELSE)
+        {
+            pos = token_step(pos);
+            output_indent(indent, skip);
+            output("else\n", skip);
+            if (token_peek(pos) != TOKEN_IF)
+                token_expect(pos, TOKEN_LCUR);
+            return parse_stmt(pos, skip, indent);
+        }
+        return pos;
+    }
+
+    output_indent(indent, skip);
+    pos = parse_expr(pos, skip);
+    output(";\n", skip);
+    return token_expect(pos, TOKEN_SEMI);
 }
 
 static const char *parse_func_sig_args(const char *pos, int skip)
