@@ -13,8 +13,15 @@
 #define panic() (fprintf(stderr, "panic() was called.\n"), abort())
 
 /* -------------------------------------------------------------------------- */
-/*                                 Path utils                                 */
+/*                                    Utils                                   */
 /* -------------------------------------------------------------------------- */
+
+static char *str_from_range(const char *begin, const char *end)
+{
+    char *buff = calloc(end - begin + 1, 1);
+    strncat(buff, begin, end - begin);
+    return buff;
+}
 
 static void path_normalize(char *path)
 {
@@ -48,10 +55,6 @@ static void path_normalize(char *path)
     }
 }
 
-/* -------------------------------------------------------------------------- */
-/*                                 str_list_t                                 */
-/* -------------------------------------------------------------------------- */
-
 typedef struct
 {
     char **strs;
@@ -69,7 +72,7 @@ static const char *str_list_find(const str_list_t *list, const char *str)
 static void str_list_append(str_list_t *list, const char *str)
 {
     list->strs = realloc(list->strs, sizeof(list->strs) * (list->size + 1));
-    list->strs[list->size] = strdup(str);
+    list->strs[list->size] = str_from_range(str, str + strlen(str));
     list->size++;
 }
 
@@ -588,9 +591,8 @@ static const char *parse_unary_expr(const char *pos, int skip)
         const char *end;
         token_kind_t kind;
         lexer_get_token(pos, &begin, &end, &kind);
-        char *buff = calloc(end - begin + 1, 1);
-        strncat(buff, begin, end - begin);
-        if (str_list_find(&enums, buff))
+        char *name = str_from_range(begin, end);
+        if (str_list_find(&enums, name))
         {
             output_token_id(pos, skip);
             output("_", skip);
@@ -600,7 +602,7 @@ static const char *parse_unary_expr(const char *pos, int skip)
             pos = token_expect(pos, TOKEN_ID);
             return pos;
         }
-        free(buff);
+        free(name);
     }
 
     while (1)
@@ -955,6 +957,17 @@ static const char *parse_stmt(const char *pos, int skip, size_t indent)
         return pos;
     }
 
+    if (token_peek(pos) == TOKEN_UNDER)
+    {
+        pos = token_expect(pos, TOKEN_UNDER);
+        pos = token_expect(pos, TOKEN_ASSIGN);
+        output_indent(indent, skip);
+        output("(void)", skip);
+        pos = parse_expr(pos, skip);
+        output(";\n", skip);
+        return token_expect(pos, TOKEN_SEMI);
+    }
+
     output_indent(indent, skip);
     pos = parse_expr(pos, skip);
     output(";\n", skip);
@@ -1004,10 +1017,9 @@ static const char *parse_global(const char *pos, int def)
 
         if (!def)
         {
-            char *buff = calloc(end - begin, 1);
-            strncat(buff, begin + 1, end - begin - 2);
-            import_file(buff, begin, end);
-            free(buff);
+            char *path = str_from_range(begin + 1, end - 1);
+            import_file(path, begin, end);
+            free(path);
         }
 
         pos = token_step(pos);
@@ -1099,10 +1111,9 @@ static const char *parse_global(const char *pos, int def)
             const char *end;
             token_kind_t kind;
             lexer_get_token(name, &begin, &end, &kind);
-            char *buff = calloc(end - begin + 1, 1);
-            strncat(buff, begin, end - begin);
-            str_list_append(&enums, buff);
-            free(buff);
+            char *name = str_from_range(begin, end);
+            str_list_append(&enums, name);
+            free(name);
         }
         return token_expect(pos, TOKEN_SEMI);
     }
@@ -1269,7 +1280,7 @@ void import_file(const char *path, const char *begin, const char *end)
     }
     else
     {
-        path = strdup(path);
+        path = str_from_range(path, path + strlen(path));
     }
     if (str_list_find(&imported_paths, path))
     {
