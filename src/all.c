@@ -2,19 +2,11 @@
 #include <stdlib.h>
 #include <string.h>
 
-/* -------------------------------------------------------------------------- */
-/*                                   panic()                                  */
-/* -------------------------------------------------------------------------- */
-
 #ifdef panic
 #undef panic
 #endif
 
 #define panic() (fprintf(stderr, "panic() was called.\n"), abort())
-
-/* -------------------------------------------------------------------------- */
-/*                                    Utils                                   */
-/* -------------------------------------------------------------------------- */
 
 static char *str_from_range(const char *begin, const char *end)
 {
@@ -63,7 +55,8 @@ typedef struct
 
 static const char *str_list_find(const str_list_t *list, const char *str)
 {
-    for (size_t i = 0; i < list->size; i++)
+    size_t i;
+    for (i = 0; i < list->size; i++)
         if (strcmp(str, list->strs[i]) == 0)
             return list->strs[i];
     return NULL;
@@ -131,17 +124,19 @@ static void print_snippet(const char *begin, const char *end)
     const char *line_begin;
     const char *line_end;
     size_t line_number;
+    size_t offset;
     find_location(begin, &line_begin, &line_end, &line_number);
     if (end <= begin)
         end = begin + 1;
     if (end >= line_end)
         end = line_end;
-    size_t offset = fprintf(stderr, " %d ", (int)line_number);
+    offset = fprintf(stderr, " %d ", (int)line_number);
     fprintf(stderr, "| %.*s\n", (int)(line_end - line_begin), line_begin);
     if (end > begin)
     {
+        const char *i;
         fprintf(stderr, "%*s| ", (int)offset, "");
-        for (const char *i = line_begin; i < end; i++)
+        for (i = line_begin; i < end; i++)
             fputc(i < begin ? ' ' : i == begin ? '^'
                                                : '~',
                   stderr);
@@ -222,7 +217,7 @@ static void print_snippet(const char *begin, const char *end)
                                 \
     X(TOKEN_DOT, ".")
 
-#define TOKEN(x, ...) x,
+#define TOKEN(x, y) x,
 
 typedef enum
 {
@@ -232,6 +227,7 @@ typedef enum
     TOKEN_STR,
     TOKEN_BUILTINS_X(TOKEN)
     TOKEN_KEYWORDS_X(TOKEN) TOKEN_KEYWORD_OPERATORS_X(TOKEN) TOKEN_SYMBOLS_X(TOKEN)
+        MAX_TOKEN
 } token_kind_t;
 
 #undef TOKEN
@@ -590,8 +586,9 @@ static const char *parse_unary_expr(const char *pos, int skip)
         const char *begin;
         const char *end;
         token_kind_t kind;
+        char *name;
         lexer_get_token(pos, &begin, &end, &kind);
-        char *name = str_from_range(begin, end);
+        name = str_from_range(begin, end);
         if (str_list_find(&enums, name))
         {
             output_token_id(pos, skip);
@@ -876,9 +873,10 @@ static const char *parse_stmt(const char *pos, int skip, size_t indent)
 
     if (token_peek(pos) == TOKEN_LET)
     {
+        const char *name;
         pos = token_step(pos);
         output_indent(indent, skip);
-        const char *name = pos;
+        name = pos;
         pos = token_expect(pos, TOKEN_ID);
         pos = token_expect(pos, TOKEN_COLON);
         pos = parse_type(pos, skip);
@@ -1008,10 +1006,10 @@ static const char *parse_global(const char *pos, int def)
 {
     if (token_peek(pos) == TOKEN_IMPORT)
     {
-        pos = token_step(pos);
         const char *begin;
         const char *end;
         token_kind_t kind;
+        pos = token_step(pos);
         token_expect(pos, TOKEN_STR);
         lexer_get_token(pos, &begin, &end, &kind);
 
@@ -1031,8 +1029,9 @@ static const char *parse_global(const char *pos, int def)
         token_peek_ex(pos, 2) == TOKEN_ASSIGN &&
         token_peek_ex(pos, 3) == TOKEN_RECORD)
     {
+        const char *name;
         pos = token_expect(pos, TOKEN_CONST);
-        const char *name = pos;
+        name = pos;
         pos = token_expect(pos, TOKEN_ID);
         pos = token_expect(pos, TOKEN_ASSIGN);
         pos = token_expect(pos, TOKEN_RECORD);
@@ -1050,9 +1049,10 @@ static const char *parse_global(const char *pos, int def)
 
         while (1)
         {
+            const char *member;
             if (token_peek(pos) == TOKEN_RCUR)
                 break;
-            const char *member = pos;
+            member = pos;
             pos = token_expect(pos, TOKEN_ID);
             pos = token_expect(pos, TOKEN_COLON);
             output_indent(1, !def);
@@ -1072,8 +1072,9 @@ static const char *parse_global(const char *pos, int def)
         token_peek_ex(pos, 2) == TOKEN_ASSIGN &&
         token_peek_ex(pos, 3) == TOKEN_ENUM)
     {
+        const char *name;
         pos = token_expect(pos, TOKEN_CONST);
-        const char *name = pos;
+        name = pos;
         pos = token_expect(pos, TOKEN_ID);
         pos = token_expect(pos, TOKEN_ASSIGN);
         pos = token_expect(pos, TOKEN_ENUM);
@@ -1110,10 +1111,11 @@ static const char *parse_global(const char *pos, int def)
             const char *begin;
             const char *end;
             token_kind_t kind;
+            char *name_str;
             lexer_get_token(name, &begin, &end, &kind);
-            char *name = str_from_range(begin, end);
-            str_list_append(&enums, name);
-            free(name);
+            name_str = str_from_range(begin, end);
+            str_list_append(&enums, name_str);
+            free(name_str);
         }
         return token_expect(pos, TOKEN_SEMI);
     }
@@ -1123,8 +1125,9 @@ static const char *parse_global(const char *pos, int def)
         token_peek_ex(pos, 2) == TOKEN_COLON &&
         token_peek_ex(pos, 3) == TOKEN_LPAR)
     {
+        const char *name;
         pos = token_expect(pos, TOKEN_CONST);
-        const char *name = pos;
+        name = pos;
         pos = token_expect(pos, TOKEN_ID);
         pos = token_expect(pos, TOKEN_COLON);
         pos = parse_func_sig_args(pos, 1);
@@ -1148,8 +1151,9 @@ static const char *parse_global(const char *pos, int def)
         token_peek_ex(pos, 2) == TOKEN_ASSIGN &&
         token_peek_ex(pos, 3) == TOKEN_LPAR)
     {
+        const char *name;
         pos = token_expect(pos, TOKEN_CONST);
-        const char *name = pos;
+        name = pos;
         pos = token_expect(pos, TOKEN_ID);
         pos = token_expect(pos, TOKEN_ASSIGN);
         pos = parse_func_sig_args(pos, 1);
@@ -1189,8 +1193,9 @@ static const char *parse_global(const char *pos, int def)
 
     if (token_peek(pos) == TOKEN_LET)
     {
+        const char *name;
         pos = token_expect(pos, TOKEN_LET);
-        const char *name = pos;
+        name = pos;
         pos = token_expect(pos, TOKEN_ID);
         pos = token_expect(pos, TOKEN_COLON);
         pos = parse_type(pos, def);
@@ -1224,8 +1229,9 @@ static const char *parse_global(const char *pos, int def)
         token_peek_ex(pos, 2) == TOKEN_COLON &&
         token_peek_ex(pos, 3) == TOKEN_TYPE)
     {
+        const char *name;
         pos = token_expect(pos, TOKEN_CONST);
-        const char *name = pos;
+        name = pos;
         pos = token_expect(pos, TOKEN_ID);
         pos = token_expect(pos, TOKEN_COLON);
         pos = token_expect(pos, TOKEN_TYPE);
@@ -1268,6 +1274,11 @@ void parse_file(void)
 
 void import_file(const char *path, const char *begin, const char *end)
 {
+    char *tmp_path;
+    char *tmp_text;
+    FILE *file = NULL;
+    size_t input_size = 0;
+
     if (current_path)
     {
         size_t buff_len = strlen(current_path) + strlen("/../") + strlen(path) + 1;
@@ -1287,10 +1298,10 @@ void import_file(const char *path, const char *begin, const char *end)
         return;
     }
 
-    char *tmp_path = current_path;
-    char *tmp_text = current_text;
+    tmp_path = current_path;
+    tmp_text = current_text;
 
-    FILE *file = fopen(path, "rb");
+    file = fopen(path, "rb");
     if (!file)
     {
         if (begin)
@@ -1303,7 +1314,7 @@ void import_file(const char *path, const char *begin, const char *end)
         panic();
     }
     fseek(file, 0, SEEK_END);
-    size_t input_size = ftell(file);
+    input_size = ftell(file);
     fseek(file, 0, SEEK_SET);
     current_text = calloc(input_size + 1, 1);
     if (fread(current_text, 1, input_size, file) < input_size)
