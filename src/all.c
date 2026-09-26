@@ -1,6 +1,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stddef.h>
+#include <stdint.h>
 
 #ifdef panic
 #undef panic
@@ -265,11 +267,6 @@ static const char *token_kind_str(token_kind_t kind)
 #undef KEYWORD_CASE
 }
 
-static int is_space(char c)
-{
-    return c == ' ' || c == '\t' || c == '\r' || c == '\n';
-}
-
 static int is_number(char c)
 {
     return '0' <= c && c <= '9';
@@ -280,11 +277,62 @@ static int is_allowed_in_id(char c)
     return ('a' <= c && c <= 'z') || ('A' <= c && c <= 'Z') || c == '_' || is_number(c);
 }
 
-static const char *lexer_skip_space(const char *pos)
+static const char *lexer_skip_to_next_line(const char *pos)
 {
-    while (*pos && is_space(*pos))
-        pos++;
-    return pos;
+    if (!*pos)
+        return pos;
+    if (*pos == '\n')
+        return pos + 1;
+    if (*pos == '#')
+    {
+        while (*pos && *pos != '\n')
+            pos++;
+        if (!*pos)
+            return pos;
+        return pos + 1;
+    }
+    panic();
+}
+
+static const char *lexer_step(const char *pos)
+{
+
+#define KEYWORD_OPERATORS_HANDLER(name, str)                                           \
+    {                                                                                  \
+        const char *end = i + 1;                                                       \
+        if ((size_t)(end - current_text) > strlen(str))                                \
+        {                                                                              \
+            const char *begin = end - strlen(str);                                     \
+            if (!is_allowed_in_id(begin[-1]) && strncmp(begin, str, end - begin) == 0) \
+            {                                                                          \
+                pos = lexer_skip_to_next_line(pos);                                    \
+                continue;                                                              \
+            }                                                                          \
+        }                                                                              \
+    }
+
+    const char *i;
+    int operator_keyword = 0;
+    while (1)
+    {
+        while (*pos && (*pos == ' ' || *pos == '\t' || *pos == '\r'))
+            pos++;
+        if (!*pos)
+            return pos;
+        if (!(*pos == '\n' || *pos == '#'))
+            return pos;
+
+        i = pos;
+        while (i > current_text && i[-1] != '\n' && (*i == ' ' || *i == '\t' || *i == '\r' || *i == '\n' || *i == '#'))
+            i--;
+
+        TOKEN_KEYWORD_OPERATORS_X(KEYWORD_OPERATORS_HANDLER)
+        if (!operator_keyword && (*i == ')' || *i == '}' || *i == ']' || is_allowed_in_id(*i) || *i == '^'))
+            return pos;
+        pos = lexer_skip_to_next_line(pos);
+    }
+
+#undef KEYWORD_OPERATORS_HANDLER
 }
 
 static const char *lexer_get_token(const char *pos, const char **begin, const char **end, token_kind_t *kind)
@@ -294,7 +342,7 @@ static const char *lexer_get_token(const char *pos, const char **begin, const ch
     if (*end - *begin == sizeof(str) - 1 && strncmp(str, *begin, sizeof(str) - 1) == 0) \
     {                                                                                   \
         *kind = k;                                                                      \
-        return lexer_skip_space(pos);                                                   \
+        return lexer_step(pos);                                                         \
     }
 
 #define SYMBOL_MATCH(k, str)         \
@@ -308,11 +356,11 @@ static const char *lexer_get_token(const char *pos, const char **begin, const ch
             break;                   \
         *end = q;                    \
         *kind = k;                   \
-        return lexer_skip_space(q);  \
+        return lexer_step(q);        \
     } while (0);
 
     const char *expected;
-    pos = lexer_skip_space(pos);
+    pos = lexer_step(pos);
 
     *begin = pos;
 
@@ -322,13 +370,20 @@ static const char *lexer_get_token(const char *pos, const char **begin, const ch
         *kind = TOKEN_EOF;
         return pos;
     }
+    else if (*pos == '\n' || *pos == '#')
+    {
+        *begin = pos - 1;
+        *end = pos;
+        *kind = TOKEN_SEMI;
+        return lexer_step(lexer_skip_to_next_line(pos));
+    }
     else if (is_number(*pos))
     {
         while (*pos && is_number(*pos))
             pos++;
         *end = pos;
         *kind = TOKEN_INT;
-        return lexer_skip_space(pos);
+        return lexer_step(pos);
     }
     else if (is_allowed_in_id(*pos))
     {
@@ -341,7 +396,7 @@ static const char *lexer_get_token(const char *pos, const char **begin, const ch
         TOKEN_KEYWORD_OPERATORS_X(KEYWORD_MATCH)
 
         *kind = TOKEN_ID;
-        return lexer_skip_space(pos);
+        return lexer_step(pos);
     }
     else if (*pos == '"')
     {
@@ -354,7 +409,7 @@ static const char *lexer_get_token(const char *pos, const char **begin, const ch
             pos++;
             *end = pos;
             *kind = TOKEN_STR;
-            return lexer_skip_space(pos);
+            return lexer_step(pos);
         }
         else
         {
@@ -373,7 +428,7 @@ static const char *lexer_get_token(const char *pos, const char **begin, const ch
             pos++;
             *end = pos;
             *kind = TOKEN_STR;
-            return lexer_skip_space(pos);
+            return lexer_step(pos);
         }
         else
         {
@@ -499,6 +554,8 @@ static void token_unexpected(const char *pos, const char *expected)
     print_location(begin);
     if (kind == TOKEN_EOF)
         fprintf(stderr, "error: Unexpected EOF. Expected %s.\n", expected);
+    else if (kind == TOKEN_SEMI)
+        fprintf(stderr, "error: Unexpected ';'. Expected %s.\n", expected);
     else
         fprintf(stderr, "error: Unexpected token '%.*s'. Expected %s.\n", (int)(end - begin), begin, expected);
     print_snippet(begin, end);
@@ -966,6 +1023,11 @@ static const char *parse_stmt(const char *pos, int skip, size_t indent)
         return token_expect(pos, TOKEN_SEMI);
     }
 
+    if (token_peek(pos) == TOKEN_SEMI)
+    {
+        return token_step(pos);
+    }
+
     output_indent(indent, skip);
     pos = parse_expr(pos, skip);
     output(";\n", skip);
@@ -1253,18 +1315,20 @@ void parse_file(void)
     const char *pos = current_text;
     while (1)
     {
-        pos = lexer_skip_space(pos);
+        pos = lexer_step(pos);
         if (token_peek(pos) == TOKEN_EOF)
             break;
         pos = parse_global(pos, 0);
+        output("\n", 0);
     }
     pos = current_text;
     while (1)
     {
-        pos = lexer_skip_space(pos);
+        pos = lexer_step(pos);
         if (token_peek(pos) == TOKEN_EOF)
             break;
         pos = parse_global(pos, 1);
+        output("\n", 0);
     }
 }
 
