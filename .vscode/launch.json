@@ -5,10 +5,10 @@
             "name": "Run yezik",
             "type": "cppdbg",
             "request": "launch",
-            "program": "${workspaceFolder}/yezik",
+            "program": "${workspaceFolder}/build/yezik-bootstrap-transpiler",
             "args": [
                 "main.yezik",
-                "out.c"
+                "build/out.c"
             ],
             "cwd": "${workspaceFolder}",
             "preLaunchTask": "Build yezik"

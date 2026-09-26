@@ -1,0 +1,6 @@
+import 'std.yezik'
+
+const main = (): c_int => {
+    print_str('Hello, world!\n')
+    return 0
+}

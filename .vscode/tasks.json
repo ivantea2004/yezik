@@ -9,12 +9,15 @@
                 "-g",
                 "-Og",
                 "-O0",
+                "-D_CRT_SECURE_NO_WARNINGS",
+                "-std=c89",
                 "${workspaceFolder}/src/all.c",
                 "-o",
-                "${workspaceFolder}/yezik",
+                "${workspaceFolder}/build/yezik-bootstrap-transpiler",
                 "-Wall",
                 "-Wextra",
-                "-Werror"
+                "-Werror",
+                "-pedantic"
             ],
             "problemMatcher": [
                 "$gcc"

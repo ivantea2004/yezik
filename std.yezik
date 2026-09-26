@@ -1,0 +1,16 @@
+
+const putchar: (c: c_int): c_int = undefined
+
+const str: type = &[_]char
+
+const print_char = (c: char): void => {
+    _ = putchar(cast(c_int)c)
+}
+
+const print_str = (s: str): void => {
+    let i: usize = 0
+    while s[i] <> cast(char) '\0' {
+        print_char(s[i])
+        i += 1
+    }
+}
