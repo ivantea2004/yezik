@@ -45,6 +45,8 @@ static void path_normalize(char *path)
             for (; *read && *read != '/'; read++, write++)
                 *write = *read;
             *write = *read;
+            if (!*read)
+                read--;
         }
     }
 }
