@@ -1290,13 +1290,14 @@ void import_file(const char *path, const char *begin, const char *end)
     char *tmp_path = current_path;
     char *tmp_text = current_text;
 
-    errno = 0;
     FILE *file = fopen(path, "rb");
     if (!file)
     {
         if (begin)
             print_location(begin);
-        fprintf(stderr, "error: %s: %s.\n", path, strerror(errno));
+        fprintf(stderr, "error: ");
+        perror(path);
+
         if (begin)
             print_snippet(begin, end);
         panic();
@@ -1307,7 +1308,8 @@ void import_file(const char *path, const char *begin, const char *end)
     current_text = calloc(input_size + 1, 1);
     if (fread(current_text, 1, input_size, file) < input_size)
     {
-        fprintf(stderr, "error: %s: %s.\n", path, strerror(errno));
+        fprintf(stderr, "error: ");
+        perror(path);
         exit(1);
     }
     fclose(file);
@@ -1329,11 +1331,11 @@ int main(int argc, char **argv)
         exit(1);
     }
 
-    errno = 0;
     output_file = fopen(argv[2], "w");
     if (!output_file)
     {
-        fprintf(stderr, "error: %s: %s\n", argv[2], strerror(errno));
+        fprintf(stderr, "error: ");
+        perror(argv[2]);
         exit(1);
     }
 
