@@ -70,19 +70,19 @@
         },
         "keywords-operators": {
             "name": "keyword.other",
-            "match": "\\b(as|not|and|or)\\b"
+            "match": "\\b(cast|not|and|or|size_of)\\b"
         },
         "keywords-control": {
             "name": "keyword.control",
-            "match": "\\b(if|else|while|break|continue|return)\\b"
+            "match": "\\b(if|elif|else|while|break|continue|return)\\b"
         },
         "keywords-declarators": {
             "name": "storage.type",
-            "match": "\\b(function|const|type|record|enum|import)\\b"
+            "match": "\\b(let|const|record|enum|import)\\b"
         },
         "builtin-types": {
             "name": "storage.type",
-            "match": "\\b(none|bool|char|byte|ptr|isize|usize|i8|u8|i16|u16|i32|u32|i64|u64)\\b"
+            "match": "\\b(type|void|bool|char|ptr|isize|usize|s8|u8|s16|u16|s32|u32|s64|u64|c_int|str)\\b"
         },
         "builtin-constants": {
             "name": "constant.language",

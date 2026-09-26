@@ -163,6 +163,7 @@ static void print_snippet(const char *begin, const char *end)
 
 #define TOKEN_KEYWORDS_X(X)       \
     X(TOKEN_IF, "if")             \
+    X(TOKEN_ELIF, "elif")         \
     X(TOKEN_ELSE, "else")         \
     X(TOKEN_WHILE, "while")       \
     X(TOKEN_BREAK, "break")       \
@@ -179,7 +180,8 @@ static void print_snippet(const char *begin, const char *end)
     X(TOKEN_NOT, "not")              \
     X(TOKEN_AND, "and")              \
     X(TOKEN_OR, "or")                \
-    X(TOKEN_CAST, "cast")
+    X(TOKEN_CAST, "cast")            \
+    X(TOKEN_SIZE_OF, "size_of")
 
 #define TOKEN_SYMBOLS_X(X)      \
                                 \
@@ -329,7 +331,7 @@ static const char *lexer_step(const char *pos)
             i--;
 
         TOKEN_KEYWORD_OPERATORS_X(KEYWORD_OPERATORS_HANDLER)
-        if (!operator_keyword && (*i == ')' || *i == '}' || *i == ']' || is_allowed_in_id(*i) || *i == '^'))
+        if (!operator_keyword && (*i == ')' || *i == '}' || *i == ']' || is_allowed_in_id(*i) || *i == '^' || *i == '\'' || *i == '"'))
             return pos;
         pos = lexer_skip_to_next_line(pos);
     }
@@ -736,6 +738,15 @@ static const char *parse_unary_expr(const char *pos, int skip)
         output("0", skip);
         pos = token_step(pos);
     }
+    else if (token_peek(pos) == TOKEN_SIZE_OF)
+    {
+        pos = token_expect(pos, TOKEN_SIZE_OF);
+        pos = token_expect(pos, TOKEN_LPAR);
+        output("sizeof(", skip);
+        pos = parse_type(pos, skip);
+        output(")", skip);
+        pos = token_expect(pos, TOKEN_RPAR);
+    }
     else
     {
         token_unexpected(pos, "expression");
@@ -1002,13 +1013,22 @@ static const char *parse_stmt(const char *pos, int skip, size_t indent)
         output(")\n", skip);
         token_expect(pos, TOKEN_LCUR);
         pos = parse_stmt(pos, skip, indent);
+        while (token_peek(pos) == TOKEN_ELIF)
+        {
+            pos = token_step(pos);
+            output_indent(indent, skip);
+            output("else if (", skip);
+            pos = parse_expr(pos, skip);
+            output(")\n", skip);
+            token_expect(pos, TOKEN_LCUR);
+            pos = parse_stmt(pos, skip, indent);
+        }
         if (token_peek(pos) == TOKEN_ELSE)
         {
             pos = token_step(pos);
             output_indent(indent, skip);
             output("else\n", skip);
-            if (token_peek(pos) != TOKEN_IF)
-                token_expect(pos, TOKEN_LCUR);
+            token_expect(pos, TOKEN_LCUR);
             return parse_stmt(pos, skip, indent);
         }
         return pos;
@@ -1196,17 +1216,17 @@ static const char *parse_global(const char *pos, int def)
         pos = token_expect(pos, TOKEN_COLON);
         pos = parse_func_sig_args(pos, 1);
         pos = token_expect(pos, TOKEN_COLON);
-        pos = parse_type(pos, !def);
-        output(" ", !def);
-        output_token_id(name, !def);
+        pos = parse_type(pos, def);
+        output(" ", def);
+        output_token_id(name, def);
         pos = token_expect(name, TOKEN_ID);
         pos = token_expect(pos, TOKEN_COLON);
-        pos = parse_func_sig_args(pos, !def);
+        pos = parse_func_sig_args(pos, def);
         pos = token_expect(pos, TOKEN_COLON);
         pos = parse_type(pos, 1);
         pos = token_expect(pos, TOKEN_ASSIGN);
         pos = token_expect(pos, TOKEN_UNDEFINED);
-        output(";\n", !def);
+        output(";\n", def);
         return token_expect(pos, TOKEN_SEMI);
     }
 
@@ -1399,6 +1419,16 @@ void import_file(const char *path, const char *begin, const char *end)
     current_text = tmp_text;
 }
 
+static const char common[] =
+    "#include <stddef.h>\n"
+    "#include <stdint.h>\n"
+    "#include <stdio.h>\n"
+    "#include <stdlib.h>\n"
+    "typedef int c_int;\n"
+    "typedef void* ptr;\n"
+    "typedef int32_t s32;\n"
+    "typedef size_t usize;\n";
+
 int main(int argc, char **argv)
 {
 
@@ -1416,6 +1446,7 @@ int main(int argc, char **argv)
         exit(1);
     }
 
+    fprintf(output_file, "%s\n", common);
     import_file(argv[1], NULL, NULL);
     fclose(output_file);
     return 0;
