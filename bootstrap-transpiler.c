@@ -21,32 +21,48 @@ static void path_normalize(char *path)
 {
     const char *read = path;
     char *write = path;
-    for (; *read; write++, read++)
+
+    while (1)
     {
         if (read[0] == '.' && read[1] == '/')
         {
-            read++;
-            write--;
-            continue;
+            read += 2;
         }
         else if (read[0] == '.' && read[1] == '.' && read[2] == '/')
         {
-            read++;
-            read++;
-            while (*write != '/')
-                write--;
-            write--;
-            while (write >= path && *write != '/')
-                write--;
-            continue;
+            read += 3;
+            if (write == path)
+            {
+                write[0] = '.';
+                write[1] = '.';
+                write[2] = '/';
+                write += 3;
+            }
+            else
+            {
+                write -= 2;
+                while (write > path && *write != '/')
+                    --write;
+                if (*write == '/')
+                    write += 1;
+            }
         }
         else
         {
-            for (; *read && *read != '/'; read++, write++)
+            while (*read && *read != '/')
+            {
                 *write = *read;
-            *write = *read;
+                read++;
+                write++;
+            }
             if (!*read)
-                read--;
+            {
+                *write = '\0';
+                return;
+            }
+            read++;
+            *write = '/';
+            write++;
         }
     }
 }
