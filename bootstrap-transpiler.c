@@ -189,6 +189,7 @@ static void print_snippet(const char *begin, const char *end)
     X(TOKEN_IMPORT, "import")     \
     X(TOKEN_CONST, "const")       \
     X(TOKEN_LET, "let")           \
+    X(TOKEN_MUT, "mut")           \
     X(TOKEN_RECORD, "record")     \
     X(TOKEN_ENUM, "enum")
 
@@ -607,22 +608,22 @@ static token_kind_t token_peek_ex(const char *pos, size_t depth)
 
 static const char *parse_type(const char *pos, int skip)
 {
-    if (token_peek_ex(pos, 0) == TOKEN_REF &&
-        token_peek_ex(pos, 1) == TOKEN_LBR)
-    {
-        pos = token_expect(pos, TOKEN_REF);
-        pos = token_expect(pos, TOKEN_LBR);
-        pos = token_expect(pos, TOKEN_UNDER);
-        pos = token_expect(pos, TOKEN_RBR);
-        pos = parse_type(pos, skip);
-        output("*", skip);
-        return pos;
-    }
-
     if (token_peek(pos) == TOKEN_REF)
     {
-        pos = token_expect(pos, TOKEN_REF);
+        int mut;
+        pos = token_step(pos);
+        mut = token_peek(pos) == TOKEN_MUT;
+        if (mut)
+            pos = token_step(pos);
+        if (token_peek(pos) == TOKEN_LBR)
+        {
+            pos = token_expect(pos, TOKEN_LBR);
+            pos = token_expect(pos, TOKEN_UNDER);
+            pos = token_expect(pos, TOKEN_RBR);
+        }
         pos = parse_type(pos, skip);
+        if (!mut)
+            output(" const", skip);
         output("*", skip);
         return pos;
     }
@@ -960,13 +961,19 @@ static const char *parse_stmt(const char *pos, int skip, size_t indent)
     if (token_peek(pos) == TOKEN_LET)
     {
         const char *name;
+        int mut;
         pos = token_step(pos);
         output_indent(indent, skip);
+        mut = token_peek(pos) == TOKEN_MUT;
+        if (mut)
+            pos = token_step(pos);
         name = pos;
         pos = token_expect(pos, TOKEN_ID);
         pos = token_expect(pos, TOKEN_COLON);
         pos = parse_type(pos, skip);
         output(" ", skip);
+        if (!mut)
+            output("const ", skip);
         output_token_id(name, skip);
         pos = token_expect(pos, TOKEN_ASSIGN);
         if (token_peek(pos) != TOKEN_UNDEFINED)
@@ -1083,11 +1090,17 @@ static const char *parse_func_sig_args(const char *pos, int skip)
     output("(", skip);
     while (1)
     {
-        const char *name = pos;
+        const char *name;
+        int mut = token_peek(pos) == TOKEN_MUT;
+        if (mut)
+            pos = token_step(pos);
+        name = pos;
         pos = token_expect(pos, TOKEN_ID);
         pos = token_expect(pos, TOKEN_COLON);
         pos = parse_type(pos, skip);
         output(" ", skip);
+        if (!mut)
+            output("const ", skip);
         output_token_id(name, skip);
 
         if (token_peek(pos) == TOKEN_RPAR)
@@ -1294,12 +1307,18 @@ static const char *parse_global(const char *pos, int def)
     if (token_peek(pos) == TOKEN_LET)
     {
         const char *name;
+        int mut;
         pos = token_expect(pos, TOKEN_LET);
+        mut = token_peek(pos) == TOKEN_MUT;
+        if (mut)
+            pos = token_step(pos);
         name = pos;
         pos = token_expect(pos, TOKEN_ID);
         pos = token_expect(pos, TOKEN_COLON);
         pos = parse_type(pos, def);
         output(" ", def);
+        if (!mut)
+            output("const ", def);
         output_token_id(name, def);
         pos = token_expect(pos, TOKEN_ASSIGN);
         output(" = ", def);
