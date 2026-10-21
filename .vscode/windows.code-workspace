@@ -1,0 +1,55 @@
+{
+    "folders": [
+        {
+            "path": ".."
+        }
+    ],
+    "tasks": {
+        "version": "2.0.0",
+        "tasks": [
+            {
+                "type": "cppbuild",
+                "label": "Build yezik",
+                "command": "clang",
+                "args": [
+                    "-g",
+                    "-O0",
+                    "-D_CRT_SECURE_NO_WARNINGS",
+                    "-std=c89",
+                    "${workspaceFolder}/bootstrap-transpiler.c",
+                    "-o",
+                    "${workspaceFolder}/build/bootstrap-transpiler.exe",
+                    "-Wall",
+                    "-Wextra",
+                    "-Werror",
+                    "-pedantic"
+                ],
+                "problemMatcher": [
+                    "$gcc"
+                ],
+                "group": {
+                    "kind": "build",
+                    "isDefault": true
+                },
+            },
+        ]
+    },
+    "launch": {
+        "version": "0.2.0",
+        "configurations": [
+            {
+                "name": "Yezik run",
+                "type": "cppvsdbg",
+                "request": "launch",
+                "cwd": "${workspaceFolder}",
+                "program": "build/bootstrap-transpiler.exe",
+                "args": [
+                    "main.yezik",
+                    "build/out.c"
+                ],
+                "preLaunchTask": "Build yezik"
+            },
+        ]
+    },
+    "settings": {}
+}
