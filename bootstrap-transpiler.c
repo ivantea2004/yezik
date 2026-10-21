@@ -545,6 +545,21 @@ static void output_token_char(const char *pos, int skip)
         fprintf(output_file, "'%.*s'", (int)(end - begin - 2), begin + 1);
 }
 
+static void output_location(const char *pos, int skip)
+{
+    const char *line_begin;
+    const char *line_end;
+    size_t line_number;
+    char buff[20] = {0};
+    find_location(pos, &line_begin, &line_end, &line_number);
+    (void)sprintf(buff, "%d", (int)line_number);
+    output("#line ", skip);
+    output(buff, skip);
+    output(" \"", skip);
+    output(current_path, skip);
+    output("\"\n", skip);
+}
+
 /* -------------------------------------------------------------------------- */
 /*                                   Parser                                   */
 /* -------------------------------------------------------------------------- */
@@ -942,6 +957,7 @@ static const char *parse_expr(const char *pos, int skip)
 
 static const char *parse_stmt(const char *pos, int skip, size_t indent)
 {
+    output_location(pos, skip);
     if (token_peek(pos) == TOKEN_LCUR)
     {
         pos = token_step(pos);
@@ -1089,6 +1105,7 @@ static const char *parse_stmt(const char *pos, int skip, size_t indent)
         {
             pos = token_step(pos);
             output_indent(indent, skip);
+            output_location(pos, skip);
             output("else if (", skip);
             pos = parse_expr(pos, skip);
             output(")\n", skip);
