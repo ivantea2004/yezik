@@ -185,6 +185,7 @@ static void print_snippet(const char *begin, const char *end)
     X(TOKEN_BREAK, "break")       \
     X(TOKEN_CONTINUE, "continue") \
     X(TOKEN_RETURN, "return")     \
+    X(TOKEN_ASSERT, "assert")     \
                                   \
     X(TOKEN_IMPORT, "import")     \
     X(TOKEN_CONST, "const")       \
@@ -1105,6 +1106,16 @@ static const char *parse_stmt(const char *pos, int skip, size_t indent)
         return pos;
     }
 
+    if (token_peek(pos) == TOKEN_ASSERT)
+    {
+        pos = token_step(pos);
+        output_indent(indent, skip);
+        output("runtime_assert(", skip);
+        pos = parse_expr(pos, skip);
+        output(");\n", skip);
+        return token_expect(pos, TOKEN_SEMI);
+    }
+
     if (token_peek(pos) == TOKEN_UNDER)
     {
         pos = token_expect(pos, TOKEN_UNDER);
@@ -1507,6 +1518,12 @@ static const char common[] =
     "#include <stdint.h>\n"
     "#include <stdio.h>\n"
     "#include <stdlib.h>\n"
+    "#include <assert.h>\n"
+    "#ifdef NDEBUG\n"
+    "#define runtime_assert(expr) (!(expr) ? (fprintf(stderr, \"error: Assertion failed: %s\\n\", #expr), abort()) : (void)0)\n"
+    "#else\n"
+    "#define runtime_assert(expr) assert(expr)\n"
+    "#endif\n"
     "typedef int c_int;\n"
     "typedef void* ptr;\n"
     "typedef int32_t s32;\n"
