@@ -863,7 +863,7 @@ static const char *parse_expr(const char *pos, int skip)
     }
     else if (token_peek(pos) == TOKEN_OR)
     {
-        output(" OR ", skip);
+        output(" || ", skip);
         pos = token_step(pos);
         return parse_expr(pos, skip);
     }
