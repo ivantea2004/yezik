@@ -1020,8 +1020,14 @@ static const char *parse_stmt(const char *pos, int skip, size_t indent)
     {
         pos = token_step(pos);
         output_indent(indent, skip);
-        output("while (", skip);
+        output("for (; ", skip);
         pos = parse_expr(pos, skip);
+        output("; ", skip);
+        if (token_peek(pos) == TOKEN_SEMI)
+        {
+            pos = token_step(pos);
+            pos = parse_expr(pos, skip);
+        }
         output(")\n", skip);
         token_expect(pos, TOKEN_LCUR);
         return parse_stmt(pos, skip, indent);
