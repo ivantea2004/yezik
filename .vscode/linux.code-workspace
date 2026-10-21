@@ -9,20 +9,13 @@
         "tasks": [
             {
                 "type": "cppbuild",
-                "label": "Build yezik",
-                "command": "gcc",
+                "label": "Build transpiler",
+                "command": "bash",
                 "args": [
-                    "-g",
-                    "-O0",
-                    "-D_CRT_SECURE_NO_WARNINGS",
-                    "-std=c89",
-                    "${workspaceFolder}/bootstrap-transpiler.c",
-                    "-o",
-                    "${workspaceFolder}/build/bootstrap-transpiler",
-                    "-Wall",
-                    "-Wextra",
-                    "-Werror",
-                    "-pedantic"
+                    "build.sh",
+                    "--transpiler-only",
+                    "gcc",
+                    "-std=c89 -pedantic -g -Og -Wall -Wextra -Werror -D_CRT_SECURE_NO_WARNINGS"
                 ],
                 "problemMatcher": [
                     "$gcc"
@@ -32,13 +25,32 @@
                     "isDefault": true
                 },
             },
+            {
+                "type": "cppbuild",
+                "label": "Build",
+                "command": "bash",
+                "args": [
+                    "build.sh",
+                    "main.yezik",
+                    "build/out",
+                    "gcc",
+                    "-std=c89 -pedantic -g -Og -Wall -Wextra -Werror -D_CRT_SECURE_NO_WARNINGS"
+                ],
+                "problemMatcher": [
+                    "$gcc"
+                ],
+                "group": {
+                    "kind": "build",
+                    "isDefault": true
+                },
+            }
         ]
     },
     "launch": {
         "version": "0.2.0",
         "configurations": [
             {
-                "name": "Yezik run",
+                "name": "Run transpiler",
                 "type": "cppdbg",
                 "request": "launch",
                 "cwd": "${workspaceFolder}",
@@ -47,7 +59,16 @@
                     "main.yezik",
                     "build/out.c"
                 ],
-                "preLaunchTask": "Build yezik"
+                "preLaunchTask": "Build transpiler"
+            },
+            {
+                "name": "Run",
+                "type": "cppdbg",
+                "request": "launch",
+                "cwd": "${workspaceFolder}",
+                "program": "build/out",
+                "args": [],
+                "preLaunchTask": "Build"
             },
         ]
     },
