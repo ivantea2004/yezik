@@ -1036,6 +1036,48 @@ static const char *parse_stmt(const char *pos, int skip, size_t indent)
     if (token_peek(pos) == TOKEN_IF)
     {
         pos = token_step(pos);
+
+        if (token_peek_ex(pos, 0) == TOKEN_ID &&
+            token_peek_ex(pos, 1) == TOKEN_EQ &&
+            token_peek_ex(pos, 2) == TOKEN_LCUR)
+        {
+            output_indent(indent, skip);
+            output("switch (", skip);
+            output_token_id(pos, skip);
+            pos = token_step(pos);
+            output(")\n", skip);
+            output_indent(indent, skip);
+            output("{\n", skip);
+            pos = token_step(pos);
+            pos = token_step(pos);
+            while (1)
+            {
+                if (token_peek(pos) == TOKEN_RCUR)
+                    break;
+                output_indent(indent, skip);
+                if (token_peek(pos) == TOKEN_UNDER)
+                {
+                    pos = token_step(pos);
+                    output("default", skip);
+                }
+                else
+                {
+                    output("case ", skip);
+                    pos = parse_expr(pos, skip);
+                }
+                output(":\n", skip);
+                pos = token_expect(pos, TOKEN_ARROW);
+                pos = parse_stmt(pos, skip, indent + 1);
+                if (token_peek(pos) == TOKEN_SEMI)
+                    pos = token_step(pos);
+                output_indent(indent + 1, skip);
+                output("break;\n", skip);
+            }
+            output_indent(indent, skip);
+            output("}\n", skip);
+            return token_step(pos);
+        }
+
         output_indent(indent, skip);
         output("if (", skip);
         pos = parse_expr(pos, skip);
