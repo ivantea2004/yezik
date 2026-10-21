@@ -74,11 +74,11 @@
         },
         "keywords-control": {
             "name": "keyword.control",
-            "match": "\\b(if|elif|else|while|break|continue|return)\\b"
+            "match": "\\b(if|elif|else|while|break|continue|return|assert)\\b"
         },
         "keywords-declarators": {
             "name": "storage.type",
-            "match": "\\b(let|const|record|enum|import)\\b"
+            "match": "\\b(let|mut|const|record|enum|import)\\b"
         },
         "builtin-types": {
             "name": "storage.type",
