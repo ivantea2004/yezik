@@ -59,7 +59,7 @@
                 "program": "build/bootstrap-transpiler.exe",
                 "args": [
                     "main.yezik",
-                    "build/out.c"
+                    "build/out.exe.c"
                 ],
                 "preLaunchTask": "Build transpiler"
             },

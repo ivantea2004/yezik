@@ -41,7 +41,7 @@ echo Using CFLAGS=%CFLAGS%
 cmd /c "echo("
 echo Building bootstrap transpiler
 echo %CC% %CFLAGS% bootstrap-transpiler.c -o build/bootstrap-transpiler.exe
-%CC% %CFLAGS% bootstrap-transpiler.c -o build/bootstrap-transpiler || exit /b 1
+%CC% %CFLAGS% bootstrap-transpiler.c -o build/bootstrap-transpiler.exe || exit /b 1
 
 if "%build_transpiler_only%" == "" (
     cmd /c "echo("
