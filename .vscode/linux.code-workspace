@@ -15,7 +15,7 @@
                     "build.sh",
                     "--transpiler-only",
                     "gcc",
-                    "-std=c89 -pedantic -g -Og -Wall -Wextra -Werror -D_CRT_SECURE_NO_WARNINGS"
+                    "-std=c89 -pedantic -g -O0 -Wall -Wextra -Werror -D_CRT_SECURE_NO_WARNINGS"
                 ],
                 "problemMatcher": [
                     "$gcc"
@@ -34,7 +34,7 @@
                     "main.yezik",
                     "build/out",
                     "gcc",
-                    "-std=c89 -pedantic -g -Og -Wall -Wextra -Werror -D_CRT_SECURE_NO_WARNINGS"
+                    "-std=c89 -pedantic -g -O0 -Wall -Wextra -Werror -D_CRT_SECURE_NO_WARNINGS"
                 ],
                 "problemMatcher": [
                     "$gcc"

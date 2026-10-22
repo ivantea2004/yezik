@@ -16,7 +16,7 @@
                     "build.bat",
                     "--transpiler-only",
                     "clang",
-                    "-std=c89 -pedantic -g -Og -Wall -Wextra -Werror -D_CRT_SECURE_NO_WARNINGS"
+                    "-std=c89 -pedantic -g -O0 -Wall -Wextra -Werror -D_CRT_SECURE_NO_WARNINGS"
                 ],
                 "problemMatcher": [
                     "$gcc"
@@ -36,7 +36,7 @@
                     "main.yezik",
                     "build/out.exe",
                     "clang",
-                    "-std=c89 -pedantic -g -Og -Wall -Wextra -Werror -D_CRT_SECURE_NO_WARNINGS"
+                    "-std=c89 -pedantic -g -O0 -Wall -Wextra -Werror -D_CRT_SECURE_NO_WARNINGS"
                 ],
                 "problemMatcher": [
                     "$gcc"
