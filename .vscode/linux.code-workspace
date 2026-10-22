@@ -10,10 +10,9 @@
             {
                 "type": "cppbuild",
                 "label": "Build transpiler",
-                "command": "bash",
+                "command": "sh",
                 "args": [
-                    "build.sh",
-                    "--transpiler-only",
+                    "build-transpiler.sh",
                     "gcc",
                     "-std=c89 -pedantic -g -O0 -Wall -Wextra -Werror -D_CRT_SECURE_NO_WARNINGS"
                 ],
@@ -28,7 +27,7 @@
             {
                 "type": "cppbuild",
                 "label": "Build",
-                "command": "bash",
+                "command": "sh",
                 "args": [
                     "build.sh",
                     "main.yezik",
@@ -54,7 +53,7 @@
                 "type": "cppdbg",
                 "request": "launch",
                 "cwd": "${workspaceFolder}",
-                "program": "build/bootstrap-transpiler",
+                "program": "build/transpiler",
                 "args": [
                     "main.yezik",
                     "build/out.c"
