@@ -13,8 +13,7 @@
                 "command": "cmd",
                 "args": [
                     "/c",
-                    "build.bat",
-                    "--transpiler-only",
+                    "build-transpiler.bat",
                     "clang",
                     "-std=c89 -pedantic -g -O0 -Wall -Wextra -Werror -D_CRT_SECURE_NO_WARNINGS"
                 ],
@@ -56,7 +55,7 @@
                 "type": "cppvsdbg",
                 "request": "launch",
                 "cwd": "${workspaceFolder}",
-                "program": "build/bootstrap-transpiler.exe",
+                "program": "build/transpiler.exe",
                 "args": [
                     "main.yezik",
                     "build/out.exe.c"
