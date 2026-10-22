@@ -3,26 +3,26 @@
 ## Examples
 ### Hello, world!
 ```ts
-    import 'std.yezik'
-    
-    const main = (): c_int => {
-        print('Hello, world!\n')
-        return 0
-    }
+import 'std.yezik'
+
+const main = (): c_int => {
+    print('Hello, world!\n')
+    return 0
+}
 ```
 ### Adding numbers
 ```js
-    import 'std.yezik'
+import 'std.yezik'
 
-    const add_numbers = (a: s32, b: s32): void => {
-        print_ddd('{} + {} = {}\n', a, b, a + b)
-    }
+const add_numbers = (a: s32, b: s32): void => {
+    print_ddd('{} + {} = {}\n', a, b, a + b)
+}
 
-    const main = (): c_int => {
-        add_numbers(2, 3)
-        add_number(42, 25)
-        return 0
-    }
+const main = (): c_int => {
+    add_numbers(2, 3)
+    add_number(42, 25)
+    return 0
+}
 ```
 
 ## How to build program
